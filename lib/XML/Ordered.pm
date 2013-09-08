@@ -2,33 +2,59 @@ package XML::Ordered;
 # ABSTRACT: Convert document-oriented XML to data structures, preserving element order
 # VERSION
 
+use strict;
 use XML::LibXML::Reader;
+
 use XML::Ordered::Reader;
+use XML::Ordered::Writer;
 
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(readXML);
+our @EXPORT_OK = qw(readXML writeXML);
 
 sub readXML {
     my ($input, %options) = @_;
     
-    # options include 'recover' etc.
-    my $reader = XML::LibXML::Reader->new( string => $input, %options );
-    # from string, filename, GLOB, IO::Handle...
+    my %reader_options = (
+        map { $_ => delete $options{$_} }
+        grep { exists $options{$_} } qw(attributes whitespace)
+    );
 
-    my $r = XML::Ordered::Reader->new( %options );
+    if (!defined $input or $input eq '-') {
+        $options{IO} = \*STDIN
+    } elsif( $input =~ /^</ ) {
+        $options{string} = $input;
+    } elsif( ref $input and ref $input eq 'SCALAR' ) {
+        $options{string} = $$input;
+    } elsif( ref $input ) { # TODO: support IO::Handle?
+        $options{IO} = $input;
+    } else {
+        $options{location} = $input; # filename or URL
+    }
+
+    # options include 'recover' etc.
+    my $reader = XML::LibXML::Reader->new( %options );
+
+    my $r = XML::Ordered::Reader->new( %reader_options );
     return $r->read($reader);
 
 }
 
+sub writeXML {
+    XML::Ordered::Writer->new(@_); 
+}
+
 =head1 SYNOPSIS
 
-...
+    use XML::Ordered;
+
+    ...
 
 =head1 DESCRIPTION
 
-This module implements a mapping of XML to Perl data structures for
-document-oriented XML. The mapping preserves element order but XML comments,
-processing-instructions, unparsed entities etc. are ignored.
+This module implements a mapping of document-oriented XML to Perl data
+structures.  The mapping preserves element order but XML comments,
+processing-instructions, unparsed entities etc. are ignored, similar
+to L<XML::Simple>. With L<XML::Ordered::Reader>, this XML document:
 
     <root>
       <foo>text</foo>
@@ -38,7 +64,7 @@ processing-instructions, unparsed entities etc. are ignored.
       </bar>
     </root>
 
-is transformed to
+is transformed to this structure:
 
     [
       "root", { }, [
@@ -52,7 +78,8 @@ is transformed to
 
 =head1 SEE ALSO
 
-L<XML::Simple>, L<XML::Fast>, L<XML::GenericJSON>, L<XML::Structured>
+L<XML::Simple>, L<XML::Fast>, L<XML::GenericJSON>, L<XML::Structured>,
+L<XML::Smart>
 
 =encoding utf8
 
