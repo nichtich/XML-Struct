@@ -1,33 +1,36 @@
 use strict;
 use Test::More;
 use XML::Ordered::Writer;
-use XML::LibXML::SAX::Builder;
+use Encode;
 
-sub check_write(@) { # TODO: support as public method (writeDocumentToString)
-    my $options  = shift;
-    my $builder = XML::LibXML::SAX::Builder->new;
-    my $writer  = XML::Ordered::Writer->new( handler => $builder, %$options );
-    $writer->writeDocument(shift);
-    is $builder->result->toString, shift, shift;
-}
-
-check_write {},
-    [ "foo", { x => 1 }, [ ["bar"], "text" ] ] =>
-    "<?xml version=\"1.0\"?>\n<foo x=\"1\"><bar/>text</foo>\n";
-
-# default handler
 my $writer = XML::Ordered::Writer->new;
-my $doc = $writer->writeDocument( [ "root", { a => 1 }, [ "text" ] ] );
-isa_ok($doc,'XML::LibXML::Document');
-is "$doc", "<?xml version=\"1.0\"?>\n<root a=\"1\">text</root>\n";
+my $xml = $writer->writeDocument( [
+    greet => { }, [
+        "Hello, ",
+        [ emph => { color => "blue" } , [ "World" ] ],
+        "!"
+    ]
+] );
+isa_ok $xml, 'XML::LibXML::Document';
+is $xml->serialize, <<'XML', 'writeDocument';
+<?xml version="1.0"?>
+<greet>Hello, <emph color="blue">World</emph>!</greet>
+XML
 
-#    my $writer  = XML::Ordered::Writer->new;
-#use XML::Handler::YAWriter;
-#my $handler = new XML::Handler::YAWriter( AsFile => '-' );
+$xml = $writer->writeDocument( [ doc => { a => 1 }, [ "\x{2603}" ] ] );
+$xml->setEncoding("UTF-8");
+is $xml->serialize,
+    encode("UTF-8", <<XML), "UTF-8";
+<?xml version="1.0" encoding="UTF-8"?>
+<doc a="1">\x{2603}</doc>
+XML
 
-#my $writer = XML::Ordered::Writer->new( handler => $handler );
-#$writer->writeDocument( [ "foo", { x => 1 } ] );
+## TODO: Write an XML fragment
+#$xml = $writer->writeElement(
+#    [ "foo", { x => 1 }, [ ["bar"], "text" ] ]
+#);
+# is $xml->serialize, "<foo x=\"1\"><bar/>text</foo>",
 
-# is '<?xml version="1.0" encoding="UTF-8"?><foo></foo>'
+# TODO: Test writing to a handler
 
 done_testing;

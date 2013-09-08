@@ -2,11 +2,14 @@ package XML::Ordered;
 # ABSTRACT: Convert document-oriented XML to data structures, preserving element order
 # VERSION
 
+use strict;
 use XML::LibXML::Reader;
+
 use XML::Ordered::Reader;
+use XML::Ordered::Writer;
 
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(readXML);
+our @EXPORT_OK = qw(readXML writeXML);
 
 sub readXML {
     my ($input, %options) = @_;
@@ -34,6 +37,10 @@ sub readXML {
     my $r = XML::Ordered::Reader->new( %reader_options );
     return $r->read($reader);
 
+}
+
+sub writeXML {
+    XML::Ordered::Writer->new(@_); 
 }
 
 =head1 SYNOPSIS

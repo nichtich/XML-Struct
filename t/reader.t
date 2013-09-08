@@ -12,7 +12,7 @@ $stream = XML::LibXML::Reader->new( string => "<root> </root>" );
 $reader = XML::Ordered::Reader->new( whitespace => 1 );
 is_deeply $reader->read( $stream ), [ 'root' => { }, [' '] ], 'whitespace';
 
-
+# TODO: readXML may be removed/renamed
 $data = readXML(<<'XML');
 <root x:a="A" a="B" xmlns:x="http://example.org/">
   <foo>t&#x65;xt</foo>
@@ -48,7 +48,7 @@ my $xml = <<'XML';
 <nested>
   <items>
     <a>X</a>
-    <b/>
+    <b x="42"/>
     <a>Y</a>
   </items>
 </nested>
@@ -61,7 +61,7 @@ is_deeply $data,
     [ nested => [
       [ items => [
         [ a => ["X"] ],
-        [ "b" ],
+        [ "b", { x => "42" } ],
         [ a => ["Y"] ], 
       ] ]
     ] ], 'without attributes';
@@ -72,7 +72,7 @@ $reader = XML::Ordered::Reader->new( attributes => 0 );
 $data = $reader->readNext( $stream, 'nested/items/*' );
 is_deeply $data, [ a => ["X"] ], 'readNext (relative)';
 $data = $reader->readNext( $stream, '/nested/items/*' );
-is_deeply $data, [ "b" ], 'readNext (absolute)';
+is_deeply $data, [ "b", { x => "42" } ], 'readNext (absolute)';
 $data = $reader->readNext( $stream, '*' );
 is_deeply $data, [ a => ["Y"] ], 'readNext (relative)';
 
@@ -80,7 +80,7 @@ $stream = XML::LibXML::Reader->new( string => $xml );
 $reader = XML::Ordered::Reader->new( attributes => 0 );
 
 $data = $reader->readNext( $stream, 'nested/items/b' );
-is_deeply $data, [ "b" ], 'readNext (with name)';
+is_deeply $data, [ "b", { x => "42" } ], 'readNext (with name)';
 
 # use Data::Dumper; print STDERR Dumper($data);
 
