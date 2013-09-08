@@ -1,4 +1,4 @@
-package XML::Ordered::Writer;
+package XML::Struct::Writer;
 # ABSTRACT: Process ordered XML as stream, for instance to write XML
 # VERSION
 
@@ -70,9 +70,9 @@ sub writeEndElement {
 
 =head1 SYNOPSIS
 
-    use XML::Ordered::Writer;
+    use XML::Struct::Writer;
 
-    my $writer = XML::Ordered::Writer->new;
+    my $writer = XML::Struct::Writer->new;
     my $xml = $writer->writeDocument( [
         greet => { }, [
             "Hello, ",
@@ -86,7 +86,7 @@ sub writeEndElement {
 =head1 DESCRIPTION
 
 This module transforms an XML document, given in form of a data structure as
-described in L<XML::Ordered>, into a stream of SAX1 events. By default, the
+described in L<XML::Struct>, into a stream of SAX1 events. By default, the
 stream is used to build a L<XML::LibXML::Document> that can be used for
 instance to write the XML document to a file.
 

@@ -1,9 +1,9 @@
 use strict;
 use Test::More;
-use XML::Ordered::Writer;
+use XML::Struct::Writer;
 use Encode;
 
-my $writer = XML::Ordered::Writer->new;
+my $writer = XML::Struct::Writer->new;
 my $xml = $writer->writeDocument( [
     greet => { }, [
         "Hello, ",

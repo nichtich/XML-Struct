@@ -1,12 +1,12 @@
-package XML::Ordered;
+package XML::Struct;
 # ABSTRACT: Convert document-oriented XML to data structures, preserving element order
 # VERSION
 
 use strict;
 use XML::LibXML::Reader;
 
-use XML::Ordered::Reader;
-use XML::Ordered::Writer;
+use XML::Struct::Reader;
+use XML::Struct::Writer;
 
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(readXML writeXML);
@@ -34,18 +34,18 @@ sub readXML {
     # options include 'recover' etc.
     my $reader = XML::LibXML::Reader->new( %options );
 
-    my $r = XML::Ordered::Reader->new( %reader_options );
+    my $r = XML::Struct::Reader->new( %reader_options );
     return $r->read($reader);
 
 }
 
 sub writeXML {
-    XML::Ordered::Writer->new(@_); 
+    XML::Struct::Writer->new(@_); 
 }
 
 =head1 SYNOPSIS
 
-    use XML::Ordered;
+    use XML::Struct;
 
     ...
 
@@ -54,7 +54,7 @@ sub writeXML {
 This module implements a mapping of document-oriented XML to Perl data
 structures.  The mapping preserves element order but XML comments,
 processing-instructions, unparsed entities etc. are ignored, similar
-to L<XML::Simple>. With L<XML::Ordered::Reader>, this XML document:
+to L<XML::Simple>. With L<XML::Struct::Reader>, this XML document:
 
     <root>
       <foo>text</foo>
