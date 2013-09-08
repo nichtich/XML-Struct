@@ -1,15 +1,15 @@
 use strict;
 use Test::More;
-use XML::Ordered qw(readXML);
+use XML::Struct qw(readXML);
 
 my ($data, $reader, $stream);
 
 $stream = XML::LibXML::Reader->new( string => "<root> </root>" );
-$reader = XML::Ordered::Reader->new;
+$reader = XML::Struct::Reader->new;
 is_deeply $reader->read( $stream ), [ 'root' ], 'skip whitespace';
 
 $stream = XML::LibXML::Reader->new( string => "<root> </root>" );
-$reader = XML::Ordered::Reader->new( whitespace => 1 );
+$reader = XML::Struct::Reader->new( whitespace => 1 );
 is_deeply $reader->read( $stream ), [ 'root' => { }, [' '] ], 'whitespace';
 
 # TODO: readXML may be removed/renamed
@@ -55,7 +55,7 @@ my $xml = <<'XML';
 XML
 
 $stream = XML::LibXML::Reader->new( string => $xml );
-$reader = XML::Ordered::Reader->new( attributes => 0 );
+$reader = XML::Struct::Reader->new( attributes => 0 );
 $data = $reader->read( $stream );
 is_deeply $data, 
     [ nested => [
@@ -67,7 +67,7 @@ is_deeply $data,
     ] ], 'without attributes';
 
 $stream = XML::LibXML::Reader->new( string => $xml );
-$reader = XML::Ordered::Reader->new( attributes => 0 );
+$reader = XML::Struct::Reader->new( attributes => 0 );
 
 $data = $reader->readNext( $stream, 'nested/items/*' );
 is_deeply $data, [ a => ["X"] ], 'readNext (relative)';
@@ -77,7 +77,7 @@ $data = $reader->readNext( $stream, '*' );
 is_deeply $data, [ a => ["Y"] ], 'readNext (relative)';
 
 $stream = XML::LibXML::Reader->new( string => $xml );
-$reader = XML::Ordered::Reader->new( attributes => 1 );
+$reader = XML::Struct::Reader->new( attributes => 1 );
 
 $data = $reader->readNext( $stream, 'nested/items/b' );
 is_deeply $data, [ "b", { x => "42" } ], 'readNext (with name and attributes)';

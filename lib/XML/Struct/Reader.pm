@@ -1,4 +1,4 @@
-package XML::Ordered::Reader;
+package XML::Struct::Reader;
 # ABSTRACT: Read ordered XML from a stream
 # VERSION
 
@@ -19,17 +19,17 @@ use XML::LibXML::Reader qw(
 =head1 SYNOPSIS
 
     my $stream = XML::LibXML::Reader->new( location => "file.xml" );
-    my $stream = XML::Ordered::Reader->new;
+    my $stream = XML::Struct::Reader->new;
     my $data = $stream->read( $stream );
 
     # while 
     # depth < 
-#    $transform = XML::Ordered::Reader->new;
+#    $transform = XML::Struct::Reader->new;
 
 =head1 DESCRIPTION
 
 This module reads from an XML stream via L<XML::LibXML::Reader> and return a
-Perl data structure with ordered XML (see L<XML::Ordered>).
+Perl data structure with ordered XML (see L<XML::Struct>).
 
 =method new( %options )
 
