@@ -61,7 +61,7 @@ is_deeply $data,
     [ nested => [
       [ items => [
         [ a => ["X"] ],
-        [ "b", { x => "42" } ],
+        [ "b" ],
         [ a => ["Y"] ], 
       ] ]
     ] ], 'without attributes';
@@ -72,15 +72,15 @@ $reader = XML::Ordered::Reader->new( attributes => 0 );
 $data = $reader->readNext( $stream, 'nested/items/*' );
 is_deeply $data, [ a => ["X"] ], 'readNext (relative)';
 $data = $reader->readNext( $stream, '/nested/items/*' );
-is_deeply $data, [ "b", { x => "42" } ], 'readNext (absolute)';
+is_deeply $data, [ "b" ], 'readNext (absolute)';
 $data = $reader->readNext( $stream, '*' );
 is_deeply $data, [ a => ["Y"] ], 'readNext (relative)';
 
 $stream = XML::LibXML::Reader->new( string => $xml );
-$reader = XML::Ordered::Reader->new( attributes => 0 );
+$reader = XML::Ordered::Reader->new( attributes => 1 );
 
 $data = $reader->readNext( $stream, 'nested/items/b' );
-is_deeply $data, [ "b", { x => "42" } ], 'readNext (with name)';
+is_deeply $data, [ "b", { x => "42" } ], 'readNext (with name and attributes)';
 
 # use Data::Dumper; print STDERR Dumper($data);
 
