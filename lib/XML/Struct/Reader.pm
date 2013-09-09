@@ -22,9 +22,7 @@ use XML::LibXML::Reader qw(
     my $stream = XML::Struct::Reader->new;
     my $data = $stream->read( $stream );
 
-    # while 
-    # depth < 
-#    $transform = XML::Struct::Reader->new;
+=endocing utf8
 
 =head1 DESCRIPTION
 
@@ -67,7 +65,7 @@ sub readElement {
         my $attr = $self->readAttributes($stream);
         my $children = $self->readContent($stream) if !$stream->isEmptyElement;
         if ($children) {
-            push @element, $attr ||  { }, $children;
+            push @element, $attr || { }, $children;
         } elsif( $attr ) {
             push @element, $attr;
         }
@@ -80,15 +78,20 @@ sub readElement {
 
 =method readNext( $stream, $path )
 
+Read the next element from a stream. The experimental option C<$path> can be
+used to specify an element name (the empty string or "C<*>" match all element
+nodes) and a path, such as C</some/element>. The path operator "C<../>" is not
+supported.
+
 =cut
 
 sub readNext {
     my ($self, $stream, $path) = @_;
 
-    # TODO: normalize Path
-    $path = "./$path" if $path !~ qr{^[./]}; # TODO: support ../
+    $path = "./$path" if $path !~ qr{^[./]};
     $path .= '*' if $path =~ qr{/$};
 
+    # TODO: check and normalize Path
     # print "path='$path'";
 
     my @parts = split '/', $path;
@@ -101,11 +104,10 @@ sub readNext {
         return if !$stream->read; # error
         # printf "%d %s\n", ($stream->depth, $stream->nodePath) if $stream->nodeType == 1;
     } while( 
-        $stream->nodeType != XML_READER_TYPE_ELEMENT || $stream->depth != $depth || 
+        $stream->nodeType != XML_READER_TYPE_ELEMENT or $stream->depth != $depth or 
         ($name ne '*' and $stream->name ne $name)
         # TODO: check full $stream->nodePath and possibly skip subtrees
         );
-
 
     $self->readElement($stream);
 }
@@ -152,7 +154,7 @@ sub readContent {
 
         if ($type == XML_READER_TYPE_ELEMENT) {
             push @children, $self->readElement($stream);
-        } elsif ($type == XML_READER_TYPE_TEXT || $type == XML_READER_TYPE_CDATA ) {
+        } elsif ($type == XML_READER_TYPE_TEXT or $type == XML_READER_TYPE_CDATA ) {
             push @children, $stream->value;
         } elsif ($type == XML_READER_TYPE_SIGNIFICANT_WHITESPACE && $self->whitespace) {
             push @children, $stream->value;
