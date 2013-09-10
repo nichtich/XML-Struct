@@ -12,7 +12,6 @@ $stream = XML::LibXML::Reader->new( string => "<root> </root>" );
 $reader = XML::Struct::Reader->new( whitespace => 1 );
 is_deeply $reader->read( $stream ), [ 'root' => { }, [' '] ], 'whitespace';
 
-# TODO: readXML may be removed/renamed
 $data = readXML(<<'XML');
 <root x:a="A" a="B" xmlns:x="http://example.org/">
   <foo>t&#x65;xt</foo>
@@ -43,45 +42,26 @@ is_deeply $data, [
       ]
     ], 'readXML';
 
-
-my $xml = <<'XML';
-<nested>
-  <items>
-    <a>X</a>
-    <b x="42"/>
-    <a>Y</a>
-  </items>
-</nested>
-XML
-
-$stream = XML::LibXML::Reader->new( string => $xml );
-$reader = XML::Struct::Reader->new( attributes => 0 );
-$data = $reader->read( $stream );
-is_deeply $data, 
+is_deeply readXML( 't/nested.xml', attributes => 0 ), 
     [ nested => [
+      [ items => [ [ a => ["X"] ] ] ],
+      [ "foo" => [ [ "bar" ] ] ],
       [ items => [
-        [ a => ["X"] ],
         [ "b" ],
         [ a => ["Y"] ], 
       ] ]
     ] ], 'without attributes';
 
-$stream = XML::LibXML::Reader->new( string => $xml );
-$reader = XML::Struct::Reader->new( attributes => 0 );
+my $xml = <<'XML';
+<!DOCTYPE doc [
+    <!ELEMENT doc EMPTY>
+    <!ATTLIST doc attr CDATA "42">
+]><doc/>
+XML
 
-$data = $reader->readNext( $stream, 'nested/items/*' );
-is_deeply $data, [ a => ["X"] ], 'readNext (relative)';
-$data = $reader->readNext( $stream, '/nested/items/*' );
-is_deeply $data, [ "b" ], 'readNext (absolute)';
-$data = $reader->readNext( $stream, '*' );
-is_deeply $data, [ a => ["Y"] ], 'readNext (relative)';
-
-$stream = XML::LibXML::Reader->new( string => $xml );
-$reader = XML::Struct::Reader->new( attributes => 1 );
-
-$data = $reader->readNext( $stream, 'nested/items/b' );
-is_deeply $data, [ "b", { x => "42" } ], 'readNext (with name and attributes)';
-
-# use Data::Dumper; print STDERR Dumper($data);
+is_deeply readXML( $xml, complete_attributes => 1, hashify => 1 ),
+    { attr => 42 }, 'mixed attributes';
+is_deeply readXML( $xml, complete_attributes => 0, hashify => 1, root => 1 ),
+    { doc => { } }, 'mixed attributes';
 
 done_testing;

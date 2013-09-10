@@ -1,5 +1,5 @@
 package XML::Struct;
-# ABSTRACT: Convert document-oriented XML to data structures, preserving element order
+# ABSTRACT: Represent XML as data structure preserving element order
 # VERSION
 
 use strict;
@@ -12,37 +12,22 @@ use XML::Struct::Writer;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(readXML writeXML hashifyXML textValues);
 
-sub readXML {
-    my ($input, %options) = @_;
-    
-    my $hashify = delete $options{hashify};
-    my %reader_options = (
+sub readXML { # ( [$from], %options )
+    my (%options) = @_ % 2 ? (from => @_) : @_;
+
+    my %reader = (
         map { $_ => delete $options{$_} }
-        grep { exists $options{$_} } qw(attributes whitespace)
+        grep { exists $options{$_} } qw(attributes whitespace path stream hashify root)
     );
-
-    if (!defined $input or $input eq '-') {
-        $options{IO} = \*STDIN
-    } elsif( $input =~ /^</ ) {
-        $options{string} = $input;
-    } elsif( ref $input and ref $input eq 'SCALAR' ) {
-        $options{string} = $$input;
-    } elsif( ref $input ) { # TODO: support IO::Handle AND GLOB?
-        $options{IO} = $input;
-    } else {
-        $options{location} = $input; # filename or URL
+    if (%options) {
+        if (exists $options{from} and keys %options == 1) {
+            $reader{from} = $options{from};
+        } else {
+            $reader{from} = \%options;
+        }
     }
 
-    # options include 'recover' etc.
-    my $reader = XML::LibXML::Reader->new( %options );
-
-    my $r = XML::Struct::Reader->new( %reader_options );
-    if ($hashify) {
-        return hashifyXML($r->read($reader));
-    } else {
-        return $r->read($reader);
-    }
-
+    XML::Struct::Reader->new( %reader )->read;
 }
 
 sub writeXML {
@@ -51,8 +36,20 @@ sub writeXML {
 }
 
 sub hashifyXML {
-    my $hash = _hashify($_[0]);
-    return ref $hash ? $hash : { };
+    my ($element, %options) = @_;
+
+    my $hash = _hashify(@_);
+    $hash =  { } unless ref $hash;
+
+    if ($options{root}) {
+        my $root = $options{root};
+        if ($root =~ /^[+-]?[0-9]+$/) {
+            $root = $element->[0];
+        }
+        $hash = { $root => $hash };
+    }
+
+    return $hash;
 }
 
 sub _push_hash {
@@ -67,9 +64,7 @@ sub _push_hash {
 }
 
 sub _hashify {
-    my $element = shift;
-
-    my ($children, $attributes) = ($element->[2], $element->[1]);
+    my ($children, $attributes) = ($_[0]->[2], $_[0]->[1]);
 
     # empty element or characters only 
     if (!($attributes and %$attributes) and !first { ref $_ } @$children) {
@@ -116,10 +111,14 @@ sub textValues {
 
 =head1 DESCRIPTION
 
-This module implements a mapping of document-oriented XML to Perl data
-structures.  The mapping preserves element order but XML comments,
-processing-instructions, unparsed entities etc. are ignored, similar
-to L<XML::Simple>. With L<XML::Struct::Reader>, this XML document:
+L<XML::Struct> implements a mapping of "document-oriented" XML to Perl data
+structures.  The mapping preserves element order but only XML elements,
+attributes, and text nodes (including CDATA-sections) are included. In short,
+an XML element is represented as array reference:
+
+   [ $name => \%attributes, \@children ]
+
+To give an example, with L<XML::Struct::Reader>, this XML document:
 
     <root>
       <foo>text</foo>
@@ -143,7 +142,8 @@ is transformed to this structure:
 
 The reverse transformation can be applied with L<XML::Struct::Writer>.
 
-Key-value (aka "data-oriented") XML, can be created with C<hashifyXML>:
+Key-value (aka "data-oriented") XML, as known from L<XML::Simple> can be
+created with C<hashifyXML>:
 
     {
         foo => "text",
@@ -153,11 +153,14 @@ Key-value (aka "data-oriented") XML, can be created with C<hashifyXML>:
         }
     }
 
+Both parsing and serializing are fully based on L<XML::LibXML>, so performance
+is better than L<XML::Simple> and similar to L<XML::LibXML::Simple>.
+
 =head1 EXPORTED FUNCTIONS
 
 The following functions can be exported on request:
 
-=head2 readXML( $source, %options )
+=head2 readXML( [ $source ] , [ %options ] )
 
 Read an XML document with L<XML::Struct::Reader>. The type of source (string,
 filename, URL, IO Handle...) is detected automatically.
@@ -166,14 +169,16 @@ filename, URL, IO Handle...) is detected automatically.
 
 Write an XML document with L<XML::Struct::Writer>.
 
-=head2 hashify( $element )
+=head2 hashify( $element [, %options ] )
 
 Transforms an XML element into a flattened hash, similar to what L<XML::Simple>
 returns. Attributes and child elements are treated as hash keys with their
 content as value. Text elements without attributes are converted to text and
 empty elements without attributes are converted to empty hashes.
 
-Key attributes (C<KeyAttr> in L<XML::Simple>) and the options C<KeepRoot> and
+The option C<root> works similar to C<KeepRoot> in L<XML::Simple>.
+
+Key attributes (C<KeyAttr> in L<XML::Simple>) and the options 
 C<ForceArray> are not supported (yet?).
 
 =head1 SEE ALSO

@@ -17,6 +17,14 @@ is_deeply hashifyXML([
         x => [ 1, 2 ]
     }, 'hashify attributes/children';
 
+is_deeply hashifyXML([ a => { x => 1 } ], root => 1),
+    { a => { x => 1 } }, 
+    'hashify with KeepRoot (root=1)';    
+
+is_deeply hashifyXML([ a => { x => 1 } ], root => 'doc'),
+    { doc => { x => 1 } }, 
+    'hashify with custom root';
+
 is textValues([
         root => {}, [
             "some ",
@@ -43,6 +51,6 @@ is_deeply $xml, {
         key => "value",
         doz => {}
     }
-}, 'hashified';
+}, 'hashified with readXML';
 
 done_testing;
