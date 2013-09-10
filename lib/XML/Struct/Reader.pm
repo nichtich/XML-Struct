@@ -26,9 +26,8 @@ use XML::LibXML::Reader qw(
 
 =head1 SYNOPSIS
 
-    my $stream = XML::LibXML::Reader->new( location => "file.xml" );
-    my $reader = XML::Struct::Reader->new;
-    my $data = $reader->read( $stream );
+    my $reader = XML::Struct::Reader->new( from => "file.xml" );
+    my $data   = $reader->read;
 
 =encoding utf8
 
@@ -129,42 +128,36 @@ sub _checkPath {
 }
 
 sub _nameMatch {
-   return $_[0] eq '*' or $_[0] eq $_[1]; 
+   return ($_[0] eq '*' or $_[0] eq $_[1]); 
 }
 
-sub readNext {
+sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more performance
     my $self   = shift;
-    my $stream = blessed $_[0] ? shift : $self->stream;
+    my $stream = blessed $_[0] ? shift() : $self->stream;
     my $path   = defined $_[0] ? _checkPath($_[0]) : $self->path;
 
     $path .= '*' if $path =~ qr{/$};
 
     my @parts = split '/', $path;
-    my $absolute = $parts[0] eq '';
-
-    my $depth = scalar @parts;# - 1;
-    my $name = $parts[-1];
+    my $relative = $parts[0] ne '';
 
     while(1) { 
         return if !$stream->read; # end or error
         next if $stream->nodeType != XML_READER_TYPE_ELEMENT;
 
-        # printf " %d=%d %s==%s\n", $stream->depth, $depth, $stream->nodePath, join('/', @parts);
+        printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
 
-        if ($absolute) {
-            # TODO
-            if ($stream->depth < $depth) {
-
-            } else {
-                if (!_nameMatch($parts[-1], $stream->name)) {
-
-                } # else last
+        if ($relative) {
+            if (_nameMatch($parts[0], $stream->name)) {
+                last;
             }
-        } else { # relative
-           next if !_nameMatch($parts[0], $stream->name);
+        } else {
+            if (!_nameMatch($parts[$stream->depth+1], $stream->name)) {
+                $stream->nextSibling();
+            } elsif ($stream->depth == scalar @parts - 2) {
+                last;
+            }
         }
-
-        last;
     } 
 
     my $xml = $self->readElement($stream);
