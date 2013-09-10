@@ -145,7 +145,7 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
         return if !$stream->read; # end or error
         next if $stream->nodeType != XML_READER_TYPE_ELEMENT;
 
-        printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
+        # printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
 
         if ($relative) {
             if (_nameMatch($parts[0], $stream->name)) {
