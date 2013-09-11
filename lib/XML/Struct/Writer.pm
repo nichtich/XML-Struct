@@ -46,7 +46,7 @@ sub writeElement {
                 if (ref $child) {
                     $self->writeElement($child);
                 } else {
-                    $self->handler->characters({ Data => $child });
+                    $self->writeCharacters($child);
                 }
             }
         }

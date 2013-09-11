@@ -59,21 +59,24 @@ my $xml = <<'XML';
 ]><doc/>
 XML
 
-is_deeply readXML( $xml, complete_attributes => 1, hashify => 1 ),
+is_deeply readXML( $xml, complete_attributes => 1, simple => 1 ),
     { attr => 42 }, 'mixed attributes';
-is_deeply readXML( $xml, complete_attributes => 0, hashify => 1, root => 1 ),
+is_deeply readXML( $xml, complete_attributes => 0, simple => 1, root => 1 ),
     { doc => { } }, 'mixed attributes';
 
-is_deeply readXML( 't/flat.xml', hashify => 1, root => 1, attributes => 0 ),
+is_deeply readXML( 't/flat.xml', simple => 1, root => 1, attributes => 0 ),
     { doc => { id => [1,2,4], xx => 3 } }, 
-    'hashify with root and without attributes';
+    'simple with root and without attributes';
 
-my @nodes = readXML( 't/flat.xml', path => '/doc/id', hashify => 1, root => 'xx' );
+my @nodes = readXML( 't/flat.xml', path => '/doc/id', simple => 1, root => 'xx' );
 is_deeply \@nodes, [ { xx => 1 }, { xx => 2 }, { xx => 4 } ], 'list of nodes';
 
-my $first = readXML( 't/flat.xml', path => '/doc/id', hashify => 1, root => 'xx' );
+my $first = readXML( 't/flat.xml', path => '/doc/id', simple => 1, root => 'xx' );
 is_deeply $first, { xx => 1 }, 'first of a list of nodes';
 
-# TODO: test as loop
+@nodes = ();
+$reader = XML::Struct::Reader->new( from => 't/flat.xml', simple => 1, root => 'n' );
+push @nodes, $_ while $_ = $reader->readNext('/*/id');
+is_deeply \@nodes, [ { n => 1 }, { n => 2 }, { n => 4 } ], 'read simple as loop';
 
 done_testing;

@@ -1,33 +1,33 @@
 use strict;
 use Test::More;
-use XML::Struct qw(readXML writeXML hashifyXML textValues);
+use XML::Struct qw(readXML writeXML simpleXML textValues);
 
-is_deeply hashifyXML(["root"]), { }, 'hashify empty root';
-is_deeply hashifyXML(["root",{},["text"]]), { }, 'hashify empty root with text';
-is_deeply hashifyXML(["root",{ x => 1, y => 2 },["text"]]), 
+is_deeply simpleXML(["root"]), { }, 'simple empty root';
+is_deeply simpleXML(["root",{},["text"]]), { }, 'simple empty root with text';
+is_deeply simpleXML(["root",{ x => 1, y => 2 },["text"]]), 
     { x => 1, y => 2 }, 
-    'hashify empty root with text and attributes';
+    'simple empty root with text and attributes';
 
-is_deeply hashifyXML([
+is_deeply simpleXML([
         root => { x => 1 }, [
             "text",
             [ "x", {}, [2] ]
         ]
     ]), { 
         x => [ 1, 2 ]
-    }, 'hashify attributes/children';
+    }, 'simple attributes/children';
 
-is_deeply hashifyXML([ a => { x => 1 } ], root => 1),
+is_deeply simpleXML([ a => { x => 1 } ], root => 1),
     { a => { x => 1 } }, 
-    'hashify with KeepRoot (root=1)';    
+    'simple with KeepRoot (root=1)';    
 
-is_deeply hashifyXML([ a => { x => 1 } ], root => 'doc'),
+is_deeply simpleXML([ a => { x => 1 } ], root => 'doc'),
     { doc => { x => 1 } }, 
-    'hashify with custom root';
+    'simple with custom root';
 
-is_deeply hashifyXML([ a => { x => 1 }, [[ x => {}, ['2'] ]]], root => 'doc'),
+is_deeply simpleXML([ a => { x => 1 }, [[ x => {}, ['2'] ]]], root => 'doc'),
     { doc => { x => [1,2] } }, 
-    'hashify with custom root and attributes/values';
+    'simple with custom root and attributes/values';
 
 is textValues([
         root => {}, [
@@ -39,7 +39,7 @@ is textValues([
         ]
     ]), "some text";
 
-my $xml = readXML(<<'XML', hashify => 1);
+my $xml = readXML(<<'XML', simple => 1);
 <root>
   <foo>text</foo>
   <bar key="value">

@@ -14,7 +14,7 @@ has path       => (is => 'rw', default => sub { '*' }, isa => \&_checkPath);
 has stream     => (is => 'rw'); # TODO: check with isa
 has from       => (is => 'rw', trigger => 1);
 
-has hashify    => (is => 'rw', default => sub { 0 });
+has simple     => (is => 'rw', default => sub { 0 });
 has root       => (is => 'rw', default => sub { 0 });
 
 use XML::LibXML::Reader qw(
@@ -161,8 +161,8 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
     } 
 
     my $xml = $self->readElement($stream);
-    return $self->hashify 
-        ? XML::Struct::hashifyXML( $xml, root => $self->root, attributes => $self->attributes ) 
+    return $self->simple 
+        ? XML::Struct::simpleXML( $xml, root => $self->root, attributes => $self->attributes ) 
         : $xml;
 }
 
