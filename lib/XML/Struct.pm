@@ -10,14 +10,14 @@ use XML::Struct::Reader;
 use XML::Struct::Writer;
 
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(readXML writeXML hashifyXML textValues);
+our @EXPORT_OK = qw(readXML writeXML simpleXML textValues);
 
 sub readXML { # ( [$from], %options )
     my (%options) = @_ % 2 ? (from => @_) : @_;
 
     my %reader_options = (
         map { $_ => delete $options{$_} }
-        grep { exists $options{$_} } qw(attributes whitespace path stream hashify root)
+        grep { exists $options{$_} } qw(attributes whitespace path stream simple root)
     );
     if (%options) {
         if (exists $options{from} and keys %options == 1) {
@@ -35,7 +35,7 @@ sub writeXML {
     XML::Struct::Writer->new(%options)->write($xml); 
 }
 
-sub hashifyXML {
+sub simpleXML {
     my ($element, %options) = @_;
 
     my $attributes = (!defined $options{attributes} or $options{attributes});
@@ -45,13 +45,13 @@ sub hashifyXML {
         $root = $element->[0] if $root =~ /^[+-]?[0-9]+$/;
 
         my $hash = $attributes
-                ? _hashify(1, [ dummy => {}, [$element] ])
-                : _hashify(0, [ dummy => [$element] ]);
+                ? _simple(1, [ dummy => {}, [$element] ])
+                : _simple(0, [ dummy => [$element] ]);
 
         return { $root => values %$hash };
     }
 
-    my $hash = _hashify($attributes, $element);
+    my $hash = _simple($attributes, $element);
     $hash = { } unless ref $hash;
 
     return $hash;
@@ -69,7 +69,7 @@ sub _push_hash {
 }
 
 # hashifies attributes and child elements
-sub _hashify {
+sub _simple {
     my $with_attributes = shift;
     my ($children, $attributes) = $with_attributes ? ($_[0]->[2], $_[0]->[1]) : ($_[0]->[1]);
 
@@ -87,7 +87,7 @@ sub _hashify {
 
     foreach my $child ( @$children ) {
         next unless ref $child; # skip mixed content text
-        _push_hash( $hash, $child->[0] => _hashify($with_attributes, $child) );
+        _push_hash( $hash, $child->[0] => _simple($with_attributes, $child) );
     }
 
     return $hash; 
@@ -108,19 +108,25 @@ sub textValues {
 
 =head1 SYNOPSIS
 
-    use XML::Struct qw(readXML writeXML hashifyXML);
+    use XML::Struct qw(readXML writeXML simpleXML);
 
-    my $struct = readXML( "input.xml" );
+    my $xml = readXML( "input.xml" );
+    # [ root => { xmlns => 'http://example.org/' }, [ '!', [x => {}, [42]] ] ]
 
-    my $dom = writeXML( $struct );
+    my $doc = writeXML( $xml );
+    # <?xml version="1.0" encoding="UTF-8"?>
+    # <root xmlns="http://example.org/">!<x>42</x></root>
 
-    ...
+    my $simple = simpleXML( $xml, root => 'record' );
+    # { record => { xmlns => 'http://example.org/', x => 42 } }
 
 =head1 DESCRIPTION
 
-L<XML::Struct> implements a mapping of "document-oriented" XML to Perl data
-structures.  The mapping preserves element order but only XML elements,
-attributes, and text nodes (including CDATA-sections) are included. In short,
+L<XML::Struct> implements a mapping between XML and Perl data structures. By default,
+the mapping preserves element order, so it also suits for "document-oriented" XML.
+
+
+In short,
 an XML element is represented as array reference:
 
    [ $name => \%attributes, \@children ]
@@ -149,8 +155,10 @@ is transformed to this structure:
 
 The reverse transformation can be applied with L<XML::Struct::Writer>.
 
+attributes, and text nodes (including CDATA-sections) are included. 
+
 Key-value (aka "data-oriented") XML, as known from L<XML::Simple> can be
-created with C<hashifyXML>:
+created with C<simpleXML>:
 
     {
         foo => "text",
@@ -167,16 +175,16 @@ is better than L<XML::Simple> and similar to L<XML::LibXML::Simple>.
 
 The following functions can be exported on request:
 
-=head2 readXML( [ $source ] , [ %options ] )
+=head2 readXML( $source [, %options ] )
 
 Read an XML document with L<XML::Struct::Reader>. The type of source (string,
 filename, URL, IO Handle...) is detected automatically.
 
-=head2 writeXML( $xml, %options )
+=head2 writeXML( $xml [, %options ] )
 
 Write an XML document with L<XML::Struct::Writer>.
 
-=head2 hashify( $element [, %options ] )
+=head2 simpleXML( $element [, %options ] )
 
 Transforms an XML element into a flattened hash, similar to what L<XML::Simple>
 returns. Attributes and child elements are treated as hash keys with their
