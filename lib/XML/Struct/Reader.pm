@@ -1,11 +1,12 @@
 package XML::Struct::Reader;
-# ABSTRACT: Read ordered XML from a stream
+# ABSTRACT: Read XML stream into XML data structures
 # VERSION
 
 use strict;
 use Moo;
 use Carp qw(croak);
 use Scalar::Util qw(blessed);
+use XML::Struct;
 
 has whitespace => (is => 'rw', default => sub { 0 });
 has attributes => (is => 'rw', default => sub { 1 });
@@ -145,7 +146,7 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
         return if !$stream->read; # end or error
         next if $stream->nodeType != XML_READER_TYPE_ELEMENT;
 
-        printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
+#        printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
 
         if ($relative) {
             if (_nameMatch($parts[0], $stream->name)) {
@@ -162,8 +163,7 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
 
     my $xml = $self->readElement($stream);
     return $self->hashify 
-        ? XML::Struct::hashifyXML( $xml, root => $self->root ) 
-        : $xml;
+        ? XML::Struct::hashifyXML( $xml, root => $self->root ) : $xml;
 }
 
 *read = \&readNext;

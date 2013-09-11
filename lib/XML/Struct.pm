@@ -183,8 +183,8 @@ C<ForceArray> are not supported (yet?).
 
 =head1 SEE ALSO
 
-L<XML::Simple>, L<XML::Fast>, L<XML::GenericJSON>, L<XML::Structured>,
-L<XML::Smart>
+L<XML::Simple>, L<XML::Twig>, L<XML::Fast>, L<XML::GenericJSON>,
+L<XML::Structured>, L<XML::Smart>...
 
 =encoding utf8
 
