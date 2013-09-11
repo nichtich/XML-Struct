@@ -15,19 +15,19 @@ our @EXPORT_OK = qw(readXML writeXML hashifyXML textValues);
 sub readXML { # ( [$from], %options )
     my (%options) = @_ % 2 ? (from => @_) : @_;
 
-    my %reader = (
+    my %reader_options = (
         map { $_ => delete $options{$_} }
         grep { exists $options{$_} } qw(attributes whitespace path stream hashify root)
     );
     if (%options) {
         if (exists $options{from} and keys %options == 1) {
-            $reader{from} = $options{from};
+            $reader_options{from} = $options{from};
         } else {
-            $reader{from} = \%options;
+            $reader_options{from} = \%options;
         }
     }
 
-    XML::Struct::Reader->new( %reader )->read;
+    XML::Struct::Reader->new( %reader_options )->readDocument;
 }
 
 sub writeXML {

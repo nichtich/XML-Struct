@@ -112,7 +112,7 @@ C<//>, no node tests...). Namespaces are not supported yet.
 
 Include ignorable whitespace as text elements (disabled by default)
 
-=method read = readNext ( $stream [, $path ] )
+=method read = readNext ( [ $stream ] [, $path ] )
 
 Read the next XML element from a stream. If no path option is specified, the
 reader's path option is used ("C<*>" by default, first matching the root, then
@@ -167,6 +167,27 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
 }
 
 *read = \&readNext;
+
+=method readDocument( [ $stream ] [, $path ] )
+
+Read an entire XML document. In contrast to C<read>/C<readNext>, this method
+always reads the entire stream. The return value is the first element (that is
+the root element by default) in scalar context and a list of elements in array
+context. Multiple elements can be returned for instance when a path was
+specified to select document fragments.
+
+=cut
+
+sub readDocument {
+    my $self = shift;
+    my @document;
+   
+    while(my $element = $self->read(@_)) {
+        push @document, $element;
+    }
+
+    return wantarray ? @document : $document[0];
+}
 
 =method readElement( [ $stream ] )
 
