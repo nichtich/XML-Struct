@@ -64,4 +64,14 @@ is_deeply readXML( $xml, complete_attributes => 1, hashify => 1 ),
 is_deeply readXML( $xml, complete_attributes => 0, hashify => 1, root => 1 ),
     { doc => { } }, 'mixed attributes';
 
+is_deeply readXML( 't/flat.xml', hashify => 1, root => 1, attributes => 0 ),
+    { doc => { id => [1,2,4], xx => 3 } }, 
+    'hashify with root and without attributes';
+
+#note explain readXML( 't/flat.xml', path => '/doc/id', hashify => 1, root => 'foo' );
+
+#is_deeply readXML( 't/flat.xml', path => '/doc/id', hashify => 1, root => 1, attributes => 0 ),
+#    { id => [1,2,4]  }, 
+#    'hashify with path and root';
+
 done_testing;

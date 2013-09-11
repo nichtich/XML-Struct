@@ -25,6 +25,10 @@ is_deeply hashifyXML([ a => { x => 1 } ], root => 'doc'),
     { doc => { x => 1 } }, 
     'hashify with custom root';
 
+is_deeply hashifyXML([ a => { x => 1 }, [[ x => {}, ['2'] ]]], root => 'doc'),
+    { doc => { x => [1,2] } }, 
+    'hashify with custom root and attributes/values';
+
 is textValues([
         root => {}, [
             "some ",

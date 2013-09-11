@@ -120,7 +120,6 @@ every other element).
 
 =cut
 
-
 sub _checkPath {
     my $path = shift;
     die "invalid path: $path" if $path =~ qr{\.\.|//|^\.};
@@ -163,7 +162,8 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
 
     my $xml = $self->readElement($stream);
     return $self->hashify 
-        ? XML::Struct::hashifyXML( $xml, root => $self->root ) : $xml;
+        ? XML::Struct::hashifyXML( $xml, root => $self->root, attributes => $self->attributes ) 
+        : $xml;
 }
 
 *read = \&readNext;
