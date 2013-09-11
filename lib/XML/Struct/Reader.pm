@@ -1,11 +1,12 @@
 package XML::Struct::Reader;
-# ABSTRACT: Read ordered XML from a stream
+# ABSTRACT: Read XML stream into XML data structures
 # VERSION
 
 use strict;
 use Moo;
 use Carp qw(croak);
 use Scalar::Util qw(blessed);
+use XML::Struct;
 
 has whitespace => (is => 'rw', default => sub { 0 });
 has attributes => (is => 'rw', default => sub { 1 });
@@ -111,14 +112,13 @@ C<//>, no node tests...). Namespaces are not supported yet.
 
 Include ignorable whitespace as text elements (disabled by default)
 
-=method read = readNext ( $stream [, $path ] )
+=method read = readNext ( [ $stream ] [, $path ] )
 
 Read the next XML element from a stream. If no path option is specified, the
 reader's path option is used ("C<*>" by default, first matching the root, then
 every other element). 
 
 =cut
-
 
 sub _checkPath {
     my $path = shift;
@@ -145,7 +145,7 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
         return if !$stream->read; # end or error
         next if $stream->nodeType != XML_READER_TYPE_ELEMENT;
 
-        # printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
+#        printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
 
         if ($relative) {
             if (_nameMatch($parts[0], $stream->name)) {
@@ -162,11 +162,32 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
 
     my $xml = $self->readElement($stream);
     return $self->hashify 
-        ? XML::Struct::hashifyXML( $xml, root => $self->root ) 
+        ? XML::Struct::hashifyXML( $xml, root => $self->root, attributes => $self->attributes ) 
         : $xml;
 }
 
 *read = \&readNext;
+
+=method readDocument( [ $stream ] [, $path ] )
+
+Read an entire XML document. In contrast to C<read>/C<readNext>, this method
+always reads the entire stream. The return value is the first element (that is
+the root element by default) in scalar context and a list of elements in array
+context. Multiple elements can be returned for instance when a path was
+specified to select document fragments.
+
+=cut
+
+sub readDocument {
+    my $self = shift;
+    my @document;
+   
+    while(my $element = $self->read(@_)) {
+        push @document, $element;
+    }
+
+    return wantarray ? @document : $document[0];
+}
 
 =method readElement( [ $stream ] )
 

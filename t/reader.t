@@ -64,4 +64,16 @@ is_deeply readXML( $xml, complete_attributes => 1, hashify => 1 ),
 is_deeply readXML( $xml, complete_attributes => 0, hashify => 1, root => 1 ),
     { doc => { } }, 'mixed attributes';
 
+is_deeply readXML( 't/flat.xml', hashify => 1, root => 1, attributes => 0 ),
+    { doc => { id => [1,2,4], xx => 3 } }, 
+    'hashify with root and without attributes';
+
+my @nodes = readXML( 't/flat.xml', path => '/doc/id', hashify => 1, root => 'xx' );
+is_deeply \@nodes, [ { xx => 1 }, { xx => 2 }, { xx => 4 } ], 'list of nodes';
+
+my $first = readXML( 't/flat.xml', path => '/doc/id', hashify => 1, root => 'xx' );
+is_deeply $first, { xx => 1 }, 'first of a list of nodes';
+
+# TODO: test as loop
+
 done_testing;

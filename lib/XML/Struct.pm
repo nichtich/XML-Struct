@@ -15,19 +15,19 @@ our @EXPORT_OK = qw(readXML writeXML hashifyXML textValues);
 sub readXML { # ( [$from], %options )
     my (%options) = @_ % 2 ? (from => @_) : @_;
 
-    my %reader = (
+    my %reader_options = (
         map { $_ => delete $options{$_} }
         grep { exists $options{$_} } qw(attributes whitespace path stream hashify root)
     );
     if (%options) {
         if (exists $options{from} and keys %options == 1) {
-            $reader{from} = $options{from};
+            $reader_options{from} = $options{from};
         } else {
-            $reader{from} = \%options;
+            $reader_options{from} = \%options;
         }
     }
 
-    XML::Struct::Reader->new( %reader )->read;
+    XML::Struct::Reader->new( %reader_options )->readDocument;
 }
 
 sub writeXML {
@@ -38,16 +38,21 @@ sub writeXML {
 sub hashifyXML {
     my ($element, %options) = @_;
 
-    my $hash = _hashify(@_);
-    $hash =  { } unless ref $hash;
+    my $attributes = (!defined $options{attributes} or $options{attributes});
 
     if ($options{root}) {
         my $root = $options{root};
-        if ($root =~ /^[+-]?[0-9]+$/) {
-            $root = $element->[0];
-        }
-        $hash = { $root => $hash };
+        $root = $element->[0] if $root =~ /^[+-]?[0-9]+$/;
+
+        my $hash = $attributes
+                ? _hashify(1, [ dummy => {}, [$element] ])
+                : _hashify(0, [ dummy => [$element] ]);
+
+        return { $root => values %$hash };
     }
+
+    my $hash = _hashify($attributes, $element);
+    $hash = { } unless ref $hash;
 
     return $hash;
 }
@@ -63,8 +68,10 @@ sub _push_hash {
     }
 }
 
+# hashifies attributes and child elements
 sub _hashify {
-    my ($children, $attributes) = ($_[0]->[2], $_[0]->[1]);
+    my $with_attributes = shift;
+    my ($children, $attributes) = $with_attributes ? ($_[0]->[2], $_[0]->[1]) : ($_[0]->[1]);
 
     # empty element or characters only 
     if (!($attributes and %$attributes) and !first { ref $_ } @$children) {
@@ -80,7 +87,7 @@ sub _hashify {
 
     foreach my $child ( @$children ) {
         next unless ref $child; # skip mixed content text
-        _push_hash( $hash, $child->[0] => _hashify($child) );
+        _push_hash( $hash, $child->[0] => _hashify($with_attributes, $child) );
     }
 
     return $hash; 
@@ -183,8 +190,8 @@ C<ForceArray> are not supported (yet?).
 
 =head1 SEE ALSO
 
-L<XML::Simple>, L<XML::Fast>, L<XML::GenericJSON>, L<XML::Structured>,
-L<XML::Smart>
+L<XML::Simple>, L<XML::Twig>, L<XML::Fast>, L<XML::GenericJSON>,
+L<XML::Structured>, L<XML::Smart>...
 
 =encoding utf8
 

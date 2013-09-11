@@ -13,12 +13,11 @@ my $xml = $writer->writeDocument( [
 ] );
 isa_ok $xml, 'XML::LibXML::Document';
 is $xml->serialize, <<'XML', 'writeDocument';
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <greet>Hello, <emph color="blue">World</emph>!</greet>
 XML
 
 $xml = $writer->writeDocument( [ doc => { a => 1 }, [ "\x{2603}" ] ] );
-$xml->setEncoding("UTF-8");
 is $xml->serialize,
     encode("UTF-8", <<XML), "UTF-8";
 <?xml version="1.0" encoding="UTF-8"?>
@@ -33,7 +32,7 @@ $xml = $writer->writeDocument( [
     ] 
 ] );
 is $xml->serialize(1), <<XML, "indented, without attributes";
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <doc>
   <name>alice</name>
   <name>bob</name>

@@ -1,10 +1,11 @@
 package XML::Struct::Writer;
-# ABSTRACT: Process ordered XML as stream, for instance to write XML
+# ABSTRACT: Write XML data structures as XML stream
 # VERSION
 
 use strict;
 use Moo;
 use XML::LibXML::SAX::Builder;
+use Scalar::Util qw(blessed);
 
 has handler => (
     is => 'rw',
@@ -12,36 +13,24 @@ has handler => (
 );
 
 has attributes => (is => 'rw', default => sub { 1 });
+has encoding   => (is => 'rw', default => sub { 'UTF-8' });
+has version    => (is => 'rw', default => sub { '1.0' });
 
-=method write( $root ) ==  writeDocument( $root )
-
-Write an XML document, given in form of its root element, to the handler.
-Returns the handler's result, if it support a C<result> method. 
-
-=cut
+# TODO: use a stream-based writer if option 'to' is set
+has to     => (is => 'rw'); # toFile(filename), toFH(GLOB|IO::Handle)
+has pretty => (is => 'rw', default => sub { 0 }); # 0|1|2
 
 sub write {
     my ($self, $root) = @_;
+
     $self->writeStart;
     $self->writeElement($root);
     $self->writeEnd;
+    
     return $self->handler->result if $self->handler->can('result');
 }
 
 *writeDocument = \&write;
-
-=method writeElement( $element [, @more_elements ] )
-
-Write an XML element to the handler. Note that the default handler requires to
-also call C<writeStart> and C<writeEnd> when using this method:
-
-    $writer->writeStart( [ "root", { some => "attribute" } ] );
-    $writer->writeElement( $element1 );
-    $writer->writeElement( $element2, $element3 );
-    ...
-    $writer->writeEnd( [ "root" ] );
-
-=cut
 
 sub writeElement {
     my $self = shift;
@@ -66,9 +55,6 @@ sub writeElement {
     }
 }
 
-=method writeStartElement( $element )
-=cut
-
 sub writeStartElement {
     my ($self, $element) = @_;
 
@@ -84,46 +70,23 @@ sub writeStartElement {
     }
 }
 
-=method writeEndElement( $element )
-=cut
-
 sub writeEndElement {
     my ($self, $element) = @_;
     $self->handler->end_element( { Name => $element->[0] } );
 }
 
-=method writeCharacters( $string )
-=cut
-
 sub writeCharacters {
     $_[0]->handler->characters({ Data => $_[1] });
 }
 
-=method writeStart( [ $root ] )
-
-Call the handler's C<start_document> and optionally C<start_element>.  Calling
-C<< $writer->writeStart($root) >> is equivalent to:
-
-    $writer->writeStart;
-    $writer->writeStartElement($root);
-
-=cut
-
 sub writeStart {
     my $self = shift;
     $self->handler->start_document;
+    $self->handler->xml_decl({
+        Version => $self->version, Encoding => $self->encoding
+    }) if $self->handler->can('xml_decl');
     $self->writeStartElement($_[0]) if @_;
 }
-
-=method writeEnd( [ $root ] )
-
-Call the handler's C<end_document> and optionally C<end_element>.  Calling C<<
-$writer->writeEnd($root) >> is equivalent to:
-
-    $writer->writeEndElement($root);
-    $writer->writeEnd;
-
-=cut
 
 sub writeEnd {
     my $self = shift;
@@ -135,30 +98,26 @@ sub writeEnd {
 
     use XML::Struct::Writer;
 
-    my $writer = XML::Struct::Writer->new;
-    my $xml = $writer->write( [
+    my $xml = XML::Struct::Writer->new->write( [
         greet => { }, [
             "Hello, ",
             [ emph => { color => "blue" } , [ "World" ] ],
             "!"
         ]
     ] ); 
-    
-    $xml->setEncoding("UTF-8");
     $xml->toFile("greet.xml");
 
     # <?xml version="1.0" encoding="UTF-8"?>
     # <greet>Hello, <emph color="blue">World</emph>!</greet>
 
-    my $writer = XML::Struct::Writer->new( attributes => 0 );
-    $writer->writeDocument( [
+    XML::Struct::Writer->new( attributes => 0 )->write( [
         doc => [ 
             [ name => [ "alice" ] ],
             [ name => [ "bob" ] ],
         ] 
-    ] )->serialize(1);
+    ] )->serialize(1); # 1 == pretty
 
-    # <?xml version="1.0"?>
+    # <?xml version="1.0" encoding="UTF-8"?>
     # <doc>
     #  <name>alice</name>
     #  <name>bob</name>
@@ -166,43 +125,133 @@ sub writeEnd {
 
 =head1 DESCRIPTION
 
-This module transforms an XML document, given as in form of a data structure as
-described in L<XML::Struct>, into a stream of SAX events. By default, the
-stream is used to build a L<XML::LibXML::Document> that can be used for
-instance to write the XML document to a file.
+This module writes an XML document, given as L<XML::Struct> data structure.
+
+L<XML::Struct::Writer> can act as SAX event generator that sequentially sends
+L</"SAX EVENTS"> to a SAX handler. The default handler
+L<XML::LibXML::SAX::Builder> creates L<XML::LibXML::Document> that can be used
+to serialize the XML document as string.
+
+=method write( $root ) ==  writeDocument( $root )
+
+Write an XML document, given in form of its root element, to the handler.  If
+the handler implements a C<result()> method, it is used to get a return value.
+
+For most applications this is the only method one needs to care about. If the
+XML document to be written is not fully given as root element, one has to
+directly call the following methods. This method is basically equivalent to:
+
+    $writer->writeStart;
+    $writer->writeElement($root);
+    $writer->writeEnd;
+    $writer->result if $writer->can('result');
+
+=method writeStart( [ $root ] )
+
+Call the handler's C<start_document> and C<xml_decl> methods. An optional root
+element can be passed, so C<< $writer->writeStart($root) >> is equivalent to:
+
+    $writer->writeStart;
+    $writer->writeStartElement($root);
+
+=method writeElement( $element [, @more_elements ] )
+
+Write one or more XML elements, including their child elements, to the handler.
+
+=method writeStartElement( $element )
+
+Directly call the handler's C<start_element> method.
+
+=method writeEndElement( $element )
+
+Directly call the handler's C<end_element> method.
+
+=method writeCharacters( $string )
+
+Directy call the handler's C<characters> method.
+
+=method writeEnd( [ $root ] )
+
+Directly call the handler's C<end_document> method. An optional root element
+can be passed, so C<< $writer->writeEnd($root) >> is equivalent to:
+
+    $writer->writeEndElement($root);
+    $writer->writeEnd;
 
 =head1 CONFIGURATION
 
-The C<handler> property can be used to specify a SAX handler that XML stream
-events are send to. By default L<XML::LibXML::SAX::Builder> is used to build a
-DOM that is serialized afterwards. Using another handler should be more
-performant for serialization. See L<XML::Writer>, L<XML::Handler::YAWriter>
-(and possibly L<XML::SAX::Writer> combined with L<XML::Filter::SAX1toSAX2>) for
-stream-based XML writers.
-
-Handlers do not need to support all features of SAX. A handler is expected to
-implement the following methods:
-
 =over 4
 
-=item start_document()
+=item C<handler>
 
-=item start_element( { Name => $name, Attributes => \%attributes } )
+Specify a SAX handler that L</"SAX EVENTS"> are send to. 
 
-=item end_element( { Name => $name } )
+=item C<attributes>
 
-=item characters( { Data => $characters } )
+Set to true by default to expect attribute hashes in the L<XML::Struct> input
+format. If set to false, XML elements must be passed as
 
-=item end_document()
+    [ $name => \@children ]
+
+instead of
+    
+    [ $name => \%attributes, \@children ]
+
+=item encoding
+
+Sets the encoding form I<known> handlers. By now this only affects the encoding
+of
+
 
 =back
 
-If the handler further implements a C<result()> method, it is called at the end
-of C<writeDocument>.
+=head1 SAX EVENTS
 
-If C<attributes> property is set to a false value (true by default), elements
-are expected to be passed without attributes hash as implemented in
-L<XML::Struct::Reader>.
+A SAX handler, as used by this module, is expected to implement the following
+methods (two of them are optional):
+
+=over 4
+
+=item xml_decl( { Version => $version, Encoding => $encoding } )
+
+Optionally called once at the start of an XML document, if the handler supports
+this method.
+
+=item start_document()
+
+Called once at the start of an XML document.
+
+=item start_element( { Name => $name, Attributes => \%attributes } )
+
+Called at the start of an XML element to emit an XML start tag.
+
+=item end_element( { Name => $name } )
+
+Called at the end of an XML element to emit an XML end tag.
+
+=item characters( { Data => $characters } )
+
+Called for character data. Character entities and CDATA section are expanded to
+strings.
+
+=item end_document()
+
+Called once at the end of an XML document.
+
+=item result()
+
+Optionally called at the end of C<write>/C<writeDocument> to return a value
+from this methods. Handlers do not need to implement this method.
+
+=back
+
+=head1 SEE ALSO
+
+Using a streaming SAX handler, such as L<XML::SAX::Writer>,
+L<XML::Genx::SAXWriter>, L<XML::Handler::YAWriter>, and possibly L<XML::Writer>
+should be more performant for serialization. Examples of other modules that
+receive SAX events include L<XML::STX>, L<XML::SAX::SimpleDispatcher>,
+L<XML::SAX::Machines>,
 
 =encoding utf8
 
