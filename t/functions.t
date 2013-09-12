@@ -1,6 +1,6 @@
 use strict;
 use Test::More;
-use XML::Struct qw(readXML writeXML simpleXML textValues);
+use XML::Struct qw(readXML writeXML simpleXML removeXMLAttr textValues);
 
 is_deeply simpleXML(["root"]), { }, 'simple empty root';
 is_deeply simpleXML(["root",{},["text"]]), { }, 'simple empty root with text';
@@ -37,9 +37,9 @@ is textValues([
                 ]
             ]
         ]
-    ]), "some text";
+    ]), "some text", 'textValues (EXPERIMENTAL)';
 
-my $xml = readXML(<<'XML', simple => 1);
+my $xml = <<XML;
 <root>
   <foo>text</foo>
   <bar key="value">
@@ -49,12 +49,20 @@ my $xml = readXML(<<'XML', simple => 1);
 </root>
 XML
 
-is_deeply $xml, {
+is_deeply readXML($xml, simple => 1), {
     foo => "text",
     bar => {
         key => "value",
         doz => {}
     }
 }, 'hashified with readXML';
+
+is_deeply simpleXML( removeXMLAttr(readXML($xml)), attributes => 0 ), {
+    foo => "text",
+    bar => {
+        doz => {}
+    }
+
+}, 'removeXMLAttr';
 
 done_testing;

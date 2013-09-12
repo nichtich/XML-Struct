@@ -10,7 +10,7 @@ use XML::Struct::Reader;
 use XML::Struct::Writer;
 
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(readXML writeXML simpleXML textValues);
+our @EXPORT_OK = qw(readXML writeXML simpleXML removeXMLAttr textValues);
 
 sub readXML { # ( [$from], %options )
     my (%options) = @_ % 2 ? (from => @_) : @_;
@@ -39,6 +39,11 @@ sub simpleXML {
     my ($element, %options) = @_;
 
     my $attributes = (!defined $options{attributes} or $options{attributes});
+
+    if ($attributes eq 'remove') {
+        $element = removeXMLAttr($element);
+        $attributes = 0;
+    }
 
     if ($options{root}) {
         my $root = $options{root};
@@ -93,6 +98,15 @@ sub _simple {
     return $hash; 
 }
 
+sub removeXMLAttr {
+    my $node = shift;
+    ref $node
+        ? ( $node->[2]
+            ? [ $node->[0], [ map { removeXMLAttr($_) } @{$node->[2]} ] ]
+            : [ $node->[0] ] ) # empty element
+        : $node;               # text node
+}
+
 # TODO: document (better name?)
 sub textValues {
     my ($element, $options) = @_;
@@ -108,10 +122,10 @@ sub textValues {
 
 =head1 SYNOPSIS
 
-    use XML::Struct qw(readXML writeXML simpleXML);
+    use XML::Struct qw(readXML writeXML simpleXML removeXMLAttr);
 
     my $xml = readXML( "input.xml" );
-    # [ root => { xmlns => 'http://example.org/' }, [ '!', [x => {}, [42]] ] ]
+    # [ root => { xmlns => 'http://example.org/' }, [ '!', [ x => {}, [42] ] ] ]
 
     my $doc = writeXML( $xml );
     # <?xml version="1.0" encoding="UTF-8"?>
@@ -120,12 +134,15 @@ sub textValues {
     my $simple = simpleXML( $xml, root => 'record' );
     # { record => { xmlns => 'http://example.org/', x => 42 } }
 
+    my $xml2 = removeXMLAttr($xml);
+    # [ root => [ '!', [ x => [42] ] ] ]
+
 =head1 DESCRIPTION
 
-L<XML::Struct> implements a mapping between XML and Perl data structures. By default,
-the mapping preserves element order, so it also suits for "document-oriented" XML.
-
-In short, an XML element is represented as array reference:
+L<XML::Struct> implements a mapping between XML and Perl data structures. By
+default, the mapping preserves element order, so it also suits for
+"document-oriented" XML.  In short, an XML element is represented as array
+reference:
 
    [ $name => \%attributes, \@children ]
 
@@ -135,7 +152,12 @@ If your XML documents don't contain relevant attributes, you can also choose thi
 
 The module L<XML::Struct::Reader> (or function C<readXML>) can be used to parse
 XML into this structure and the module L<XML::Struct::Writer> (or function
-C<writeXML) does the reverse.
+C<writeXML>) does the reverse.
+
+Both parsing and serializing are fully based on L<XML::LibXML>, so performance
+is better than L<XML::Simple> and similar to L<XML::LibXML::Simple>.
+
+=head2 EXAMPLE
 
 To give an example, with L<XML::Struct::Reader>, this XML document:
 
@@ -159,8 +181,8 @@ is transformed to this structure:
       ]
     ]
 
-L<XML::Struct> also supports a simple key-value (aka "data-oriented") format,
-as used by L<XML::Simple>. With option C<simple> (or function C<simpleXML>) the
+This module also supports a simple key-value (aka "data-oriented") format, as
+used by L<XML::Simple>. With option C<simple> (or function C<simpleXML>) the
 document given above woule be transformed to this structure:
 
     {
@@ -171,12 +193,9 @@ document given above woule be transformed to this structure:
         }
     }
 
-Both parsing and serializing are fully based on L<XML::LibXML>, so performance
-is better than L<XML::Simple> and similar to L<XML::LibXML::Simple>.
-
 =head1 FUNCTIONS
 
-The following functions can be exported on request:
+The following functions are exported on request:
 
 =head2 readXML( $source [, %options ] )
 
@@ -185,24 +204,61 @@ filename, URL, IO Handle...) is detected automatically.
 
 =head2 writeXML( $xml [, %options ] )
 
-Write an XML document with L<XML::Struct::Writer>.
+Write an XML document/element with L<XML::Struct::Writer>.
 
 =head2 simpleXML( $element [, %options ] )
 
-Transforms an XML element into a flattened hash, similar to what L<XML::Simple>
-returns. Attributes and child elements are treated as hash keys with their
-content as value. Text elements without attributes are converted to text and
-empty elements without attributes are converted to empty hashes.
+Transform an XML document/element into simple key-value format as known from
+L<XML::Simple>: Attributes and child elements are treated as hash keys with
+their content as value. Text elements without attributes are converted to text
+and empty elements without attributes are converted to empty hashes. The
+following options are supported:
 
-The option C<root> works similar to C<KeepRoot> in L<XML::Simple>.
+=over 4
+
+=item root
+
+Keep the root element (just as option C<KeepRoot> in L<XML::Simple>). In
+addition one can set the name of the root element if a non-numeric value is
+passed.
+
+=item attributes
+
+Assume input without attributes if set to a true value. The special value
+C<remove> will first remove attributes, so the following three are equivalent:
+
+    my @children = (['a'],['b']);
+
+    simpleXML( [ $name => \@children ], attributes => 0 );
+    simpleXML( removeXMLAttr( [ $name => \%attributes, \@children ] ), attributes => 0 );
+    simpleXML( [ $name => \%attributes, \@children ], attributes => 'remove' );
+
+=back
 
 Key attributes (C<KeyAttr> in L<XML::Simple>) and the option C<ForceArray> are
 not supported yet.
 
+=head2 removeXMLAttr( $element )
+
+Transform XML structure with attributes to XML structure without attributes.
+The function does not modify the passed element but creates a modified copy.
+
 =head1 SEE ALSO
 
-L<XML::Simple>, L<XML::Twig>, L<XML::Fast>, L<XML::GenericJSON>,
-L<XML::Structured>, L<XML::Smart>...
+This module was first created to be used in L<Catmandu::XML> and turned out to
+also become a replacement for L<XML::Simple>.
+
+See L<XML::Twig> for another popular and powerfull module for stream-based
+processing of XML documents.
+
+See L<XML::Smart>, L<XML::Hash::LX>, L<XML::Parser::Style::ETree>,
+L<XML::Fast>, and L<XML::Structured> for different representations of XML data
+as data structures (feel free to implement converters from/to XML::Struct). See 
+
+See L<XML::GenericJSON> for an (outdated and incomplete) attempt to capture more
+parts of XML Infoset in another data structure.
+
+See JSONx for a kind of reverse direction (JSON in XML).
 
 =encoding utf8
 
