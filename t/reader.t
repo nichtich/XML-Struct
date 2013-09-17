@@ -12,23 +12,25 @@ $stream = XML::LibXML::Reader->new( string => "<root> </root>" );
 $reader = XML::Struct::Reader->new( whitespace => 1 );
 is_deeply $reader->read( $stream ), [ 'root' => { }, [' '] ], 'whitespace';
 
-$data = readXML(<<'XML');
-<root x:a="A" a="B" xmlns:x="http://example.org/">
-  <foo>t&#x65;xt</foo>
+my $xml = <<'XML';
+<root x:a="A" b="B" xmlns:x="http://example.org/">
+  <x:foo>t&#x65;xt</x:foo>
   <bar key="value">
     text
     <doz/><![CDATA[xx]]></bar>
 </root>
 XML
 
+$data = readXML($xml);
+
 is_deeply $data, [
       'root', {
-        'a' => 'B',
+        'b' => 'B',
         'xmlns:x' => 'http://example.org/',
         'x:a' => 'A'
       }, [
         [
-          'foo', { },
+          'x:foo', { },
           [ 'text' ]
         ],
         [
@@ -42,6 +44,10 @@ is_deeply $data, [
       ]
     ], 'readXML';
 
+$data = readXML( $xml, ns => 'strip' );
+is_deeply $data->[1], { a => 'A' }, 'strip attribute namespaces';
+is_deeply $data->[2]->[0]->[0], 'foo', 'strip element namespaces';
+
 is_deeply readXML( 't/nested.xml', attributes => 0 ), 
     [ nested => [
       [ items => [ [ a => ["X"] ] ] ],
@@ -52,7 +58,7 @@ is_deeply readXML( 't/nested.xml', attributes => 0 ),
       ] ]
     ] ], 'without attributes';
 
-my $xml = <<'XML';
+$xml = <<'XML';
 <!DOCTYPE doc [
     <!ELEMENT doc EMPTY>
     <!ATTLIST doc attr CDATA "42">
