@@ -8,14 +8,47 @@ is_deeply simpleXML(["root",{ x => 1, y => 2 },["text"]]),
     { x => 1, y => 2 }, 
     'simple empty root with text and attributes';
 
-is_deeply simpleXML([
-        root => { x => 1 }, [
-            "text",
-            [ "x", {}, [2] ]
-        ]
-    ]), { 
-        x => [ 1, 2 ]
-    }, 'simple attributes/children';
+my $xml = readXML(<<'XML');
+<root x="1">
+  text
+  <x>2</x>
+  <y a='b'>
+    <yy>3</yy>
+  </y>
+  <x>4</x>
+  <z>5</z>
+</root>
+XML
+
+foreach my $depth (qw(* -1 2)) {
+    is_deeply simpleXML($xml, depth => $depth), { 
+        x => [ 1, 2, 4 ],
+        y => { a => 'b', yy => 3 },
+        z => 5,
+    }, "simple attributes/children (depth $depth)";
+}
+
+my $data = simpleXML($xml, depth => 1);
+is_deeply $data->{y}, {
+     a => 'b',
+     yy => [ [ 'yy', { }, [ '3' ] ] ]
+   }, "depth = 1";
+
+$data = simpleXML($xml, depth => 2, root => 'R');
+is_deeply $data->{R}->{x}, [
+    1, [x=>{},[2]], [x=>{},[4]]
+], "depth = 1 with root";
+
+$data = simpleXML($xml, depth => 2, root => 1);
+is_deeply $data->{root}->{z}, [ ['z',{},[5]] ], 'depth = 2 with root';
+
+# experimental
+$data = simpleXML($xml, depth => 0);
+is_deeply $data->{z}, [ ['z',{},[5]] ], 'depth = 0';
+
+#$data = simpleXML($xml, depth => 1, root => 1);
+
+
 
 is_deeply simpleXML([ a => { x => 1 } ], root => 1),
     { a => { x => 1 } }, 
@@ -29,6 +62,7 @@ is_deeply simpleXML([ a => { x => 1 }, [[ x => {}, ['2'] ]]], root => 'doc'),
     { doc => { x => [1,2] } }, 
     'simple with custom root and attributes/values';
 
+
 is textValues([
         root => {}, [
             "some ",
@@ -39,7 +73,7 @@ is textValues([
         ]
     ]), "some text", 'textValues (EXPERIMENTAL)';
 
-my $xml = <<XML;
+$xml = <<XML;
 <root>
   <foo>text</foo>
   <bar key="value">

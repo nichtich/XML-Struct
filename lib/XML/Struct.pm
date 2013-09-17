@@ -46,29 +46,37 @@ sub simpleXML {
         $attributes = 0;
     }
 
+    if (defined $options{depth} and $options{depth} !~ /^\+?\d+/) {
+        $options{depth} = undef;
+    }
+
     if ($options{root}) {
         my $root = $options{root};
         $root = $element->[0] if $root =~ /^[+-]?[0-9]+$/;
 
+        $options{depth}-- if defined $options{depth};
+
         my $hash = $attributes
-                ? _simple(1, [ dummy => {}, [$element] ])
-                : _simple(0, [ dummy => [$element] ]);
+                ? _simple(1, [ dummy => {}, [$element] ], $options{depth})
+                : _simple(0, [ dummy => [$element] ], $options{depth});
 
         return { $root => values %$hash };
     }
 
-    my $hash = _simple($attributes, $element);
+    my $hash = _simple($attributes, $element, $options{depth});
     $hash = { } unless ref $hash;
 
     return $hash;
 }
 
 sub _push_hash {
-    my ($hash, $key, $value) = @_;
+    my ($hash, $key, $value, $force) = @_;
 
     if ( exists $hash->{$key} ) {
         $hash->{$key} = [ $hash->{$key} ] if !ref $hash->{$key};
         push @{$hash->{$key}}, $value;
+    } elsif ( $force ) {
+        $hash->{$key} = [ $value ];
     } else {
         $hash->{$key} = $value;
     }
@@ -78,6 +86,7 @@ sub _push_hash {
 sub _simple {
     my $with_attributes = shift;
     my ($children, $attributes) = $with_attributes ? ($_[0]->[2], $_[0]->[1]) : ($_[0]->[1]);
+    my $depth = defined $_[1] ? $_[1] - 1 : undef;
 
     # empty element or characters only 
     if (!($attributes and %$attributes) and !first { ref $_ } @$children) {
@@ -85,15 +94,15 @@ sub _simple {
         return $text ne "" ? $text : { };
     }
 
-    my $hash = { };
-
-    foreach my $key ( keys  %$attributes ) {
-        _push_hash( $hash, $key => $attributes->{$key} );
-    }            
+    my $hash = { $attributes ? %$attributes : () };
 
     foreach my $child ( @$children ) {
         next unless ref $child; # skip mixed content text
-        _push_hash( $hash, $child->[0] => _simple($with_attributes, $child) );
+        if (defined $depth and $depth < 0) {
+            _push_hash( $hash, $child->[0], $child, 1 );
+        } else {
+            _push_hash( $hash, $child->[0] => _simple($with_attributes, $child, $depth) );
+        }
     }
 
     return $hash; 
@@ -236,6 +245,19 @@ following options are supported:
 Keep the root element (just as option C<KeepRoot> in L<XML::Simple>). In
 addition one can set the name of the root element if a non-numeric value is
 passed.
+
+=item depth
+
+Only transform to a given depth (including the root, if option C<root> is
+enabled). This is useful for instance to access document-oriented XML embedded
+in data oriented XML. All elements below the given depth will be included
+unmodified as array elements.
+
+    $data = simpleXML($xml, depth => 2)
+    $content = $data->{x}->{y}; # array or scalar (if existing)
+
+Use any negative or non-numeric value for unlimited depth. Depth zero (and
+depth one if with root) are only supported experimentally!
 
 =item attributes
 
