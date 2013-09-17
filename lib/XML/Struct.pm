@@ -193,6 +193,20 @@ document given above woule be transformed to this structure:
         }
     }
 
+=head1 MODULES
+
+=over
+
+=item L<XML::Struct::Reader>
+
+Read XML streams into XML data structures
+
+=item L<XML::Struct::Writer>
+
+Write XML data structures to XML streams
+
+=back
+
 =head1 FUNCTIONS
 
 The following functions are exported on request:

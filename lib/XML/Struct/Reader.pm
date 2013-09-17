@@ -1,5 +1,5 @@
 package XML::Struct::Reader;
-# ABSTRACT: Read XML stream into XML data structures
+# ABSTRACT: Read XML streams into XML data structures
 # VERSION
 
 use strict;
@@ -39,7 +39,7 @@ Perl data structure with ordered XML (see L<XML::Struct>).
 
 =head1 CONFIGURATION
 
-=over 4
+=over
 
 =item C<from>
 
@@ -85,7 +85,7 @@ sub _trigger_from {
 =item C<stream>
 
 A L<XML::LibXML::Reader> to read from. If no stream has been defined, one must
-pass a stream parameter to the C<read*> methods. Setting a source with option
+pass a stream parameter to the C<read...> methods. Setting a source with option
 C<from> automatically sets a stream.
 
 =item C<attributes>
@@ -105,12 +105,14 @@ Optional path expression to be used as default value when calling C<read>.
 Pathes must either be absolute (starting with "C</>") or consist of a single
 element name. The special name "C<*>" matches all element names.
 
-A path is a very reduced form of an XPath expressions (no axes, no "C<..>" or
-C<//>, no node tests...). Namespaces are not supported yet.
+A path is a very reduced form of an XPath expressions (no axes, no "C<..>", no
+node tests, C<//> only at the start...).  Namespaces are not supported yet.
 
 =item C<whitespace>
 
 Include ignorable whitespace as text elements (disabled by default)
+
+=back
 
 =method read = readNext ( [ $stream ] [, $path ] )
 
@@ -122,8 +124,10 @@ every other element).
 
 sub _checkPath {
     my $path = shift;
-    die "invalid path: $path" if $path =~ qr{\.\.|//|^\.};
+
+    die "invalid path: $path" if $path =~ qr{\.\.|.//|^\.};
     die "relative path not supported: $path" if $path =~ qr{^[^/]+/};
+
     return $path;
 }
 
@@ -136,7 +140,8 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
     my $stream = blessed $_[0] ? shift() : $self->stream;
     my $path   = defined $_[0] ? _checkPath($_[0]) : $self->path;
 
-    $path .= '*' if $path =~ qr{/$};
+    $path =~ s{^//}{};
+    $path .= '*' if $path =~ qr{^$|/$};
 
     my @parts = split '/', $path;
     my $relative = $parts[0] ne '';

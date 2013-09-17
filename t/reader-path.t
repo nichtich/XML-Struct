@@ -20,7 +20,7 @@ for my $root (qw(* / /* /nested)) {
     is $xml->[0], 'nested', 'root';
 }
 
-for my $root (qw(x /x)) {
+for my $root (qw(x /x //x)) {
     $reader = init($root);
     is $reader->readNext, undef, 'wrong namedroot';
 }
@@ -45,7 +45,7 @@ sub test_path(@) {
 test_path 
     '/nested/items/*', [ a => ["X"] ], 'readNext (default path set)',
     undef, [ "b" ], 'readNext (reusing default path)',
-    '*', [ a => ["Y"] ], 'readNext (relative)';
+    '//', [ a => ["Y"] ], 'readNext (relative)';
 
 test_path
     '/nested/items/b', [ "b" ], 'readNext with name',

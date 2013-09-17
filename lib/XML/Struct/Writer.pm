@@ -1,5 +1,5 @@
 package XML::Struct::Writer;
-# ABSTRACT: Write XML data structures as XML stream
+# ABSTRACT: Write XML data structures to XML streams
 # VERSION
 
 use strict;
@@ -180,7 +180,7 @@ can be passed, so C<< $writer->writeEnd($root) >> is equivalent to:
 
 =head1 CONFIGURATION
 
-=over 4
+=over
 
 =item C<handler>
 
@@ -199,9 +199,8 @@ instead of
 
 =item encoding
 
-Sets the encoding form I<known> handlers. By now this only affects the encoding
-of
-
+Sets the encoding for handlers that support an explicit encoding. Set to UTF-8
+by default.
 
 =back
 
@@ -210,7 +209,7 @@ of
 A SAX handler, as used by this module, is expected to implement the following
 methods (two of them are optional):
 
-=over 4
+=over
 
 =item xml_decl( { Version => $version, Encoding => $encoding } )
 
@@ -250,7 +249,7 @@ from this methods. Handlers do not need to implement this method.
 Using a streaming SAX handler, such as L<XML::SAX::Writer>,
 L<XML::Genx::SAXWriter>, L<XML::Handler::YAWriter>, and possibly L<XML::Writer>
 should be more performant for serialization. Examples of other modules that
-receive SAX events include L<XML::STX>, L<XML::SAX::SimpleDispatcher>,
+receive SAX events include L<XML::STX>, L<XML::SAX::SimpleDispatcher>, and
 L<XML::SAX::Machines>,
 
 =encoding utf8
