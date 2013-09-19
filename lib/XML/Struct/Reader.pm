@@ -14,7 +14,7 @@ has path       => (is => 'rw', default => sub { '*' }, isa => \&_checkPath);
 has stream     => (is => 'rw'); # TODO: check with isa
 has from       => (is => 'rw', trigger => 1);
 has ns         => (is => 'rw', default => sub { '' });
-
+has depth      => (is => 'rw');
 has simple     => (is => 'rw', default => sub { 0 });
 has root       => (is => 'rw', default => sub { 0 });
 
@@ -118,6 +118,24 @@ Include ignorable whitespace as text elements (disabled by default)
 Set to 'C<strip>' to strip XML namespaces (including attributes). Expanding
 namespace URIs ('C<expand'>) is not supported yet.
 
+=item C<simple>
+
+Convert XML to simple key-value structure as known from L<XML::Simple>.
+
+=item C<root>
+
+When using option 'C<simple>' the root element is removed by default. Use this
+option to keep the root or to further set its element name.
+
+=item C<depth>
+
+When option 'C<simple>' is enabled, only transform to a given depth.  This
+option is useful for instance to access document-oriented XML embedded in data
+oriented XML. All elements below the given depth will be returned as ordered
+XML. Use any negative or non-numeric value for unlimited depth. The root
+element only counts as one level if option C<root> is enabled.  Depth zero (and
+depth one if with root) are only supported experimentally!
+
 =back
 
 =method read = readNext ( [ $stream ] [, $path ] )
@@ -157,7 +175,7 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
         next if $stream->nodeType != XML_READER_TYPE_ELEMENT;
 
 #        printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
-        my $name = $self->ns eq 'strip' 
+        my $name = ($self->ns and $self->ns eq 'strip') 
             ? $stream->localName : $stream->name;
 
         if ($relative) {
@@ -175,8 +193,11 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
 
     my $xml = $self->readElement($stream);
     return $self->simple 
-        ? XML::Struct::simpleXML( $xml, root => $self->root, attributes => $self->attributes ) 
-        : $xml;
+        ? XML::Struct::simpleXML( $xml, 
+            root => $self->root, 
+            attributes => $self->attributes,
+            depth => $self->depth 
+        ) : $xml;
 }
 
 *read = \&readNext;
