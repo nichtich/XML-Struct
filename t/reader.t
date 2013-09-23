@@ -6,7 +6,7 @@ my ($data, $reader, $stream);
 
 $stream = XML::LibXML::Reader->new( string => "<root> </root>" );
 $reader = XML::Struct::Reader->new;
-is_deeply $reader->read( $stream ), [ 'root' ], 'skip whitespace';
+is_deeply $reader->read( $stream ), [ 'root', {}, [] ], 'skip whitespace';
 
 $stream = XML::LibXML::Reader->new( string => "<root> </root>" );
 $reader = XML::Struct::Reader->new( whitespace => 1 );
@@ -37,7 +37,7 @@ is_deeply $data, [
           'bar', { 'key' => 'value' },
           [
             "\n    text\n    ",
-            [ 'doz' ],
+            [ 'doz', {}, [] ],
             "xx"
           ]
         ]
@@ -52,7 +52,7 @@ eval { readXML( $xml, ns => 'disallow' ) };
 like $@, qr{namespaces not allowed (at line \d+ )?at t/reader\.t}, 'disallow namespaces';
 
 $data = readXML( '<x xmlns="http://example.org/"/>', ns => 'strip' );
-is_deeply $data, ['x'], 'strip default namespace declaration';
+is_deeply $data, ['x',{},[]], 'strip default namespace declaration';
 
 eval { readXML( '<x xmlns="http://example.org/"/>', ns => 'disallow' ) };
 like $@, qr{namespaces not allowed}, 'disallow namespaces attributes';

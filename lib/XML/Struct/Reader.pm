@@ -84,16 +84,6 @@ sub _trigger_from {
     $self->stream( $from );
 }
 
-sub _trigger_ns {
-    my ($self, $ns) = @_;
-
-    if (!defined $ns or $ns eq '') {
-        $self->{ns} = 'keep';
-    } elsif ($ns !~ /^(keep|strip|disallow)?$/) {
-        croak "invalid option 'ns': $ns";
-    }
-}
-
 =item C<stream>
 
 A L<XML::LibXML::Reader> to read from. If no stream has been defined, one must
@@ -160,6 +150,18 @@ Setting this option to 'C<disallow>' results in an error when namespace
 prefixes or declarations are read.
 
 Expanding namespace URIs ('C<expand'>) is not supported yet.
+
+=cut
+
+sub _trigger_ns {
+    my ($self, $ns) = @_;
+
+    if (!defined $ns or $ns eq '') {
+        $self->{ns} = 'keep';
+    } elsif ($ns !~ /^(keep|strip|disallow)?$/) {
+        croak "invalid option 'ns': $ns";
+    }
+}
 
 =item C<simple>
 
@@ -297,12 +299,8 @@ sub readElement {
 
     if ($self->attributes) {
         my $attr = $self->readAttributes($stream);
-        my $children = $self->readContent($stream) if !$stream->isEmptyElement;
-        if ($children) {
-            push @element, $attr || { }, $children;
-        } elsif( $attr ) {
-            push @element, $attr;
-        }
+        my $children = $stream->isEmptyElement ? [ ] : $self->readContent($stream);
+        push @element, $attr, $children;
     } elsif( !$stream->isEmptyElement ) {
         push @element, $self->readContent($stream);
     }
@@ -312,8 +310,8 @@ sub readElement {
 
 =method readAttributes( [ $stream ] )
 
-Read all XML attributes from a stream and return a hash reference or an empty
-list if no attributes were found.
+Read all XML attributes from a stream and return a (possibly empty) hash
+reference.
 
 =cut
 
@@ -321,7 +319,7 @@ sub readAttributes {
     my $self   = shift;
     my $stream = @_ ? shift : $self->stream;
 
-    return unless $stream->moveToFirstAttribute == 1;
+    return { } if $stream->moveToFirstAttribute != 1;
 
     my $attr = { };
     do {
@@ -331,14 +329,14 @@ sub readAttributes {
     } while ($stream->moveToNextAttribute);
     $stream->moveToElement;
 
-    return (%$attr ? $attr : ());
+    return $attr;
 }
 
 =method readContent( [ $stream ] )
 
-Read all child elements of an XML element and return the result as array
-reference or as empty list if no children were found.  Significant whitespace
-is only included if option C<whitespace> is enabled.
+Read all child elements of an XML element and return the result as (possibly
+empty) array reference.  Significant whitespace is only included if option
+C<whitespace> is enabled.
 
 =cut
 
@@ -351,9 +349,7 @@ sub readContent {
         $stream->read;
         my $type = $stream->nodeType;
 
-        if (!$type or $type == XML_READER_TYPE_END_ELEMENT) {
-            return @children ? \@children : (); 
-        }
+        last if !$type or $type == XML_READER_TYPE_END_ELEMENT;
 
         if ($type == XML_READER_TYPE_ELEMENT) {
             push @children, $self->readElement($stream);
@@ -363,6 +359,8 @@ sub readContent {
             push @children, $stream->value;
         }
     }
+    
+    return \@children; 
 }
 
 1;

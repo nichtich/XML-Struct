@@ -18,7 +18,7 @@ sub readXML { # ( [$from], %options )
     my %reader_options = (
         map { $_ => delete $options{$_} }
         grep { exists $options{$_} }
-        qw(attributes whitespace path stream simple root ns depth)
+        qw(attributes whitespace path stream simple micro root ns depth)
     );
     if (%options) {
         if (exists $options{from} and keys %options == 1) {
@@ -152,16 +152,17 @@ sub textValues {
 L<XML::Struct> implements a mapping between XML and Perl data structures. By
 default, the mapping preserves element order, so it also suits for
 "document-oriented" XML.  In short, an XML element is represented as array
-reference:
+reference with three parts:
 
    [ $name => \%attributes, \@children ]
 
-If your XML documents don't contain relevant attributes, you can also choose this format:
+This data structure corresponds to the abstract data model of
+L<MicroXML|http://www.w3.org/community/microxml/>, a simplified subset of XML.
+
+If your XML documents don't contain relevant attributes, you can also choose
+to map to this format:
 
    [ $name => \@children ]
-
-The first data structure corresponds to the abstract data model of
-L<MicroXML|http://www.w3.org/community/microxml/>, a simplified subset of XML.
 
 Both parsing (with L<XML::Struct::Reader> or function C<readXML>) and
 serializing (with L<XML::Struct::Writer> or function C<writeXML>) are fully
@@ -263,7 +264,7 @@ is transformed to this structure:
         [ "foo", { }, "text" ],
         [ "bar", { key => "value" }, [
           "text", 
-          [ "doz", { } ]
+          [ "doz", { }, [ ] ]
         ] 
       ]
     ]
