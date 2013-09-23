@@ -160,48 +160,13 @@ If your XML documents don't contain relevant attributes, you can also choose thi
 
    [ $name => \@children ]
 
-The module L<XML::Struct::Reader> (or function C<readXML>) can be used to parse
-XML into this structure and the module L<XML::Struct::Writer> (or function
-C<writeXML>) does the reverse.
+The first data structure corresponds to the abstract data model of
+L<MicroXML|http://www.w3.org/community/microxml/>, a simplified subset of XML.
 
-Both parsing and serializing are fully based on L<XML::LibXML>, so performance
-is better than L<XML::Simple> and similar to L<XML::LibXML::Simple>.
-
-=head2 EXAMPLE
-
-To give an example, with L<XML::Struct::Reader>, this XML document:
-
-    <root>
-      <foo>text</foo>
-      <bar key="value">
-        text
-        <doz/>
-      </bar>
-    </root>
-
-is transformed to this structure:
-
-    [
-      "root", { }, [
-        [ "foo", { }, "text" ],
-        [ "bar", { key => "value" }, [
-          "text", 
-          [ "doz", { } ]
-        ] 
-      ]
-    ]
-
-This module also supports a simple key-value (aka "data-oriented") format, as
-used by L<XML::Simple>. With option C<simple> (or function C<simpleXML>) the
-document given above woule be transformed to this structure:
-
-    {
-        foo => "text",
-        bar => {
-            key => "value",
-            doz => {}
-        }
-    }
+Both parsing (with L<XML::Struct::Reader> or function C<readXML>) and
+serializing (with L<XML::Struct::Writer> or function C<writeXML>) are fully
+based on L<XML::LibXML>, so performance is better than L<XML::Simple> and
+similar to L<XML::LibXML::Simple>.
 
 =head1 MODULES
 
@@ -209,11 +174,12 @@ document given above woule be transformed to this structure:
 
 =item L<XML::Struct::Reader>
 
-Read XML streams into XML data structures
+Parse XML as stream into XML data structures.
 
 =item L<XML::Struct::Writer>
 
-Write XML data structures to XML streams
+Write XML data structures to XML streams for serializing, SAX processing, or
+creating a DOM object.
 
 =back
 
@@ -224,7 +190,8 @@ The following functions are exported on request:
 =head2 readXML( $source [, %options ] )
 
 Read an XML document with L<XML::Struct::Reader>. The type of source (string,
-filename, URL, IO Handle...) is detected automatically.
+filename, URL, IO Handle...) is detected automatically. Options not known to
+XML::Struct::Reader are passed to L<XML::LibXML::Reader>.
 
 =head2 writeXML( $xml [, %options ] )
 
@@ -276,6 +243,43 @@ not supported yet.
 
 Transform XML structure with attributes to XML structure without attributes.
 The function does not modify the passed element but creates a modified copy.
+
+=head1 EXAMPLE
+
+To give an example, with L<XML::Struct::Reader>, this XML document:
+
+    <root>
+      <foo>text</foo>
+      <bar key="value">
+        text
+        <doz/>
+      </bar>
+    </root>
+
+is transformed to this structure:
+
+    [
+      "root", { }, [
+        [ "foo", { }, "text" ],
+        [ "bar", { key => "value" }, [
+          "text", 
+          [ "doz", { } ]
+        ] 
+      ]
+    ]
+
+This module also supports a simple key-value (aka "data-oriented") format, as
+used by L<XML::Simple>. With option C<simple> (or function C<simpleXML>) the
+document given above woule be transformed to this structure:
+
+    {
+        foo => "text",
+        bar => {
+            key => "value",
+            doz => {}
+        }
+    }
+
 
 =head1 SEE ALSO
 
