@@ -45,7 +45,7 @@ is_deeply $data, [
     ], 'readXML';
 
 $data = readXML( $xml, ns => 'strip' );
-is_deeply $data->[1], { a => 'A' }, 'strip attribute namespaces';
+is_deeply $data->[1], { a => 'A', b => 'B' }, 'strip attribute namespaces';
 is_deeply $data->[2]->[0]->[0], 'foo', 'strip element namespaces';
 
 is_deeply readXML( 't/nested.xml', attributes => 0 ), 

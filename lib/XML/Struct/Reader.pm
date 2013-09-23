@@ -35,8 +35,8 @@ use XML::LibXML::Reader qw(
 
 =head1 DESCRIPTION
 
-This module reads from an XML stream via L<XML::LibXML::Reader> and return a
-Perl data structure with ordered XML (see L<XML::Struct>).
+This module reads an XML stream (via L<XML::LibXML::Reader>) into
+L<XML::Struct>/MicroXML data structures.
 
 =head1 CONFIGURATION
 
@@ -115,8 +115,30 @@ Include ignorable whitespace as text elements (disabled by default)
 
 =item C<ns>
 
-Set to 'C<strip>' to strip XML namespaces (including attributes). Expanding
-namespace URIs ('C<expand'>) is not supported yet.
+Define how XML namespaces should be processed. By default, this element:
+
+    <x:foo xmlns:x="http://example.org/" bar="doz" />
+
+is transformed to this structure, keeping namespace prefixes and declarations 
+as unprocessed element names and attributes:
+    
+    [
+      'x:foo', {
+          'bar' => 'doz',
+          'xmlns:x' => 'http://example.org/'
+      }
+    ]
+
+Setting this option to 'C<strip>' will remove all namespace prefixes and
+namespace declaration attributes, so the result would be:
+
+    [
+      'foo', {
+          'bar' => 'doz'
+      }
+    ]
+
+Expanding namespace URIs ('C<expand'>) is not supported yet.
 
 =item C<simple>
 
@@ -268,8 +290,8 @@ sub readAttributes {
 
     my $attr = { };
     do {
-        if ($self->ns eq 'strip') {
-            if ($stream->prefix and $stream->prefix ne 'xmlns') {
+        if ($self->ns eq 'strip' and $stream->prefix) {
+            if ($stream->prefix ne 'xmlns') {
                 $attr->{$stream->localName} = $stream->value;
             }
         } else {
