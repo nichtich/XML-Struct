@@ -5,6 +5,7 @@ package XML::Struct::Reader;
 use strict;
 use Moo;
 use Carp qw(croak);
+our @CARP_NOT = qw(XML::Struct);
 use Scalar::Util qw(blessed);
 use XML::Struct;
 
@@ -13,7 +14,7 @@ has attributes => (is => 'rw', default => sub { 1 });
 has path       => (is => 'rw', default => sub { '*' }, isa => \&_checkPath);
 has stream     => (is => 'rw'); # TODO: check with isa
 has from       => (is => 'rw', trigger => 1);
-has ns         => (is => 'rw', default => sub { '' });
+has ns         => (is => 'rw', default => sub { 'keep' }, trigger => 1);
 has depth      => (is => 'rw');
 has simple     => (is => 'rw', default => sub { 0 });
 has root       => (is => 'rw', default => sub { 0 });
@@ -83,6 +84,16 @@ sub _trigger_from {
     $self->stream( $from );
 }
 
+sub _trigger_ns {
+    my ($self, $ns) = @_;
+
+    if (!defined $ns or $ns eq '') {
+        $self->{ns} = 'keep';
+    } elsif ($ns !~ /^(keep|strip|disallow)?$/) {
+        croak "invalid option 'ns': $ns";
+    }
+}
+
 =item C<stream>
 
 A L<XML::LibXML::Reader> to read from. If no stream has been defined, one must
@@ -115,28 +126,38 @@ Include ignorable whitespace as text elements (disabled by default)
 
 =item C<ns>
 
-Define how XML namespaces should be processed. By default, this element:
+Define how XML namespaces should be processed. By default (value 'C<keep>'),
+this document:
 
-    <x:foo xmlns:x="http://example.org/" bar="doz" />
+    <doc>
+      <x:foo xmlns:x="http://example.org/" bar="doz" />
+    </doc>
 
 is transformed to this structure, keeping namespace prefixes and declarations 
 as unprocessed element names and attributes:
     
-    [
-      'x:foo', {
-          'bar' => 'doz',
-          'xmlns:x' => 'http://example.org/'
-      }
+    [ 'doc', {}, [
+        [
+          'x:foo', {
+              'bar' => 'doz',
+              'xmlns:x' => 'http://example.org/'
+          }
+        ]
     ]
 
 Setting this option to 'C<strip>' will remove all namespace prefixes and
 namespace declaration attributes, so the result would be:
 
-    [
-      'foo', {
-          'bar' => 'doz'
-      }
+    [ 'doc', {}, [
+        [
+          'foo', {
+              'bar' => 'doz'
+          }
+        ]
     ]
+
+Setting this option to 'C<disallow>' results in an error when namespace
+prefixes or declarations are read.
 
 Expanding namespace URIs ('C<expand'>) is not supported yet.
 
@@ -197,8 +218,8 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
         next if $stream->nodeType != XML_READER_TYPE_ELEMENT;
 
 #        printf " %d=%d %s:%s==%s\n", $stream->depth, scalar @parts, $stream->nodePath, $stream->name, join('/', @parts);
-        my $name = ($self->ns and $self->ns eq 'strip') 
-            ? $stream->localName : $stream->name;
+
+        my $name = $self->_name($stream);
 
         if ($relative) {
             if (_nameMatch($parts[0], $name)) {
@@ -245,6 +266,20 @@ sub readDocument {
     return wantarray ? @document : $document[0];
 }
 
+sub _name {
+    my ($self, $stream) = @_;
+
+    if ($self->ns eq 'strip') {
+        return $stream->localName;
+    } elsif( $self->ns eq 'disallow' ) {
+        if ( $stream->name =~ /^xmlns(:.*)?$/) {
+            croak "namespaces not allowed at line ".$stream->lineNumber;
+        }
+    }
+
+    return $stream->name;
+}
+
 =method readElement( [ $stream ] )
 
 Read an XML element from a stream and return it as array reference with element name,
@@ -258,7 +293,7 @@ sub readElement {
     my $self   = shift;
     my $stream = @_ ? shift : $self->stream;
 
-    my @element = ($self->ns eq 'strip' ? $stream->localName : $stream->name);
+    my @element = ($self->_name($stream));
 
     if ($self->attributes) {
         my $attr = $self->readAttributes($stream);
@@ -290,17 +325,13 @@ sub readAttributes {
 
     my $attr = { };
     do {
-        if ($self->ns eq 'strip' and $stream->prefix) {
-            if ($stream->prefix ne 'xmlns') {
-                $attr->{$stream->localName} = $stream->value;
-            }
-        } else {
-            $attr->{$stream->name} = $stream->value;
+        if ($self->ns ne 'strip' or $stream->name !~ /^xmlns(:.*)?$/) {
+            $attr->{ $self->_name($stream) } = $stream->value;
         }
     } while ($stream->moveToNextAttribute);
     $stream->moveToElement;
 
-    return $attr;
+    return (%$attr ? $attr : ());
 }
 
 =method readContent( [ $stream ] )

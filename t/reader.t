@@ -48,7 +48,16 @@ $data = readXML( $xml, ns => 'strip' );
 is_deeply $data->[1], { a => 'A', b => 'B' }, 'strip attribute namespaces';
 is_deeply $data->[2]->[0]->[0], 'foo', 'strip element namespaces';
 
-is_deeply readXML( 't/nested.xml', attributes => 0 ), 
+eval { readXML( $xml, ns => 'disallow' ) };
+like $@, qr{namespaces not allowed (at line \d+ )?at t/reader\.t}, 'disallow namespaces';
+
+$data = readXML( '<x xmlns="http://example.org/"/>', ns => 'strip' );
+is_deeply $data, ['x'], 'strip default namespace declaration';
+
+eval { readXML( '<x xmlns="http://example.org/"/>', ns => 'disallow' ) };
+like $@, qr{namespaces not allowed}, 'disallow namespaces attributes';
+
+is_deeply readXML( 't/nested.xml', attributes => 0, ns => 'disallow' ), 
     [ nested => [
       [ items => [ [ a => ["X"] ] ] ],
       [ "foo" => [ [ "bar" ] ] ],
