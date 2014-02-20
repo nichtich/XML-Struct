@@ -8,6 +8,9 @@ is_deeply simpleXML(["root",{ x => 1, y => 2 },["text"]]),
     { x => 1, y => 2 }, 
     'simple empty root with text and attributes';
 
+is_deeply readXML('<records><a/><b/><a/></records>', simple => 1),
+    { a => [ {}, {} ], b => {} }, 'multiple empty elements';
+
 my $xml = readXML(<<'XML');
 <root x="1">
   text

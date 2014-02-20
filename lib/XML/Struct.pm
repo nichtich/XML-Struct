@@ -73,7 +73,9 @@ sub _push_hash {
     my ($hash, $key, $value, $force) = @_;
 
     if ( exists $hash->{$key} ) {
-        $hash->{$key} = [ $hash->{$key} ] if !ref $hash->{$key};
+        if ((ref $hash->{$key} || '') ne 'ARRAY') {
+            $hash->{$key} = [ $hash->{$key} ];
+        }
         push @{$hash->{$key}}, $value;
     } elsif ( $force ) {
         $hash->{$key} = [ $value ];
