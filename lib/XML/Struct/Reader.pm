@@ -46,7 +46,8 @@ L<XML::Struct>/MicroXML data structures.
 =item C<from>
 
 A source to read from. Possible values include a string or string reference
-with XML data, a filename, an URL, a file handle, and a hash reference with
+with XML data, a filename, an URL, a file handle, instances of
+L<XML::LibXML::Document> or L<XML::LibXML::Element>, and a hash reference with
 options passed to L<XML::LibXML::Reader>.
 
 =cut
@@ -70,7 +71,14 @@ sub _trigger_from {
             $options{string} = $$from;
         } elsif( ref $from and ref $from eq 'GLOB' ) {
             $options{FD} = $from;
+        } elsif( blessed $from and $from->isa('XML::LibXML::Document') ) {
+            $options{DOM} = $from;
+        } elsif( blessed $from and $from->isa('XML::LibXML::Element') ) {
+            my $doc = XML::LibXML->createDocument;
+            $doc->setDocumentElement($from);
+            $options{DOM} = $doc;
         } elsif( blessed $from ) {
+            print STDERR "BLESSED".ref($from)."\n";
             $options{IO} = $from;
         } elsif( !ref $from ) {
             $options{location} = $from; # filename or URL

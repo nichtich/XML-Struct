@@ -94,4 +94,14 @@ $reader = XML::Struct::Reader->new( from => 't/flat.xml', simple => 1, root => '
 push @nodes, $_ while $_ = $reader->readNext('/*/id');
 is_deeply \@nodes, [ { n => 1 }, { n => 2 }, { n => 4 } ], 'read simple as loop';
 
+# read from DOM
+my $dom = XML::LibXML->load_xml( string => "<root><element/></root>" );
+$data = readXML($dom);
+is_deeply $data, [ root => { }, [ [ element => { }, [ ] ] ] ], 
+    'read from XML::LibXML::Document';
+$dom = $dom->documentElement();
+$data = readXML($dom);
+is_deeply $data, [ root => { }, [ [ element => { }, [ ] ] ] ], 
+    'read from XML::LibXML::Element';
+
 done_testing;
