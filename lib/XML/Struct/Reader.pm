@@ -4,6 +4,7 @@ package XML::Struct::Reader;
 
 use strict;
 use Moo;
+use Sub::Quote;
 use Carp qw(croak);
 our @CARP_NOT = qw(XML::Struct);
 use Scalar::Util qw(blessed);
@@ -12,7 +13,16 @@ use XML::Struct;
 has whitespace => (is => 'rw', default => sub { 0 });
 has attributes => (is => 'rw', default => sub { 1 });
 has path       => (is => 'rw', default => sub { '*' }, isa => \&_checkPath);
-has stream     => (is => 'rw'); # TODO: check with isa
+has stream     => (is => 'rw', 
+    lazy    => 1, 
+    builder => quote_sub(
+        "XML::LibXML::Reader->new( { IO => \*STDIN } )"
+    ),
+    isa     => quote_sub(q{
+        die 'stream must be an XML::LibXML::Reader'
+        unless blessed $_[0] && $_[0]->isa('XML::LibXML::Reader');
+    })
+);
 has from       => (is => 'rw', trigger => 1);
 has ns         => (is => 'rw', default => sub { 'keep' }, trigger => 1);
 has depth      => (is => 'rw');
