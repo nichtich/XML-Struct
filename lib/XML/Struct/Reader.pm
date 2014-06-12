@@ -88,7 +88,6 @@ sub _trigger_from {
             $doc->setDocumentElement($from);
             $options{DOM} = $doc;
         } elsif( blessed $from ) {
-            print STDERR "BLESSED".ref($from)."\n";
             $options{IO} = $from;
         } elsif( !ref $from ) {
             $options{location} = $from; # filename or URL
