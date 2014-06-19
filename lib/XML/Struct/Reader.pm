@@ -18,10 +18,10 @@ has stream     => (is => 'rw',
     builder => quote_sub(
         "XML::LibXML::Reader->new( { IO => \*STDIN } )"
     ),
-    isa     => quote_sub(q{
+    isa     => sub {
         die 'stream must be an XML::LibXML::Reader'
         unless blessed $_[0] && $_[0]->isa('XML::LibXML::Reader');
-    })
+    }
 );
 has from       => (is => 'rw', trigger => 1);
 has ns         => (is => 'rw', default => sub { 'keep' }, trigger => 1);
