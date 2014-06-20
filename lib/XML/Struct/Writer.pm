@@ -58,11 +58,12 @@ sub writeElement {
 sub writeStartElement {
     my ($self, $element) = @_;
 
-    if ($self->attributes and $element->[1]) {
-        $self->handler->start_element( { 
-            Name => $element->[0],
-            Attributes => $element->[1] 
-        } );
+    my $attr = $element->[1];
+      if ($self->attributes and $attr) {
+          $self->handler->start_element( {
+              Name => $element->[0],
+              Attributes => { map { $_ => { Name => $_, Value => $attr->{$_}} } keys %$attr },
+          } );
     } else {
         $self->handler->start_element( { 
             Name => $element->[0] 

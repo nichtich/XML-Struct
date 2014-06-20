@@ -18,8 +18,7 @@ is $xml->serialize, <<'XML', 'writeDocument';
 XML
 
 $xml = $writer->writeDocument( [ doc => { a => 1 }, [ "\x{2603}" ] ] );
-is $xml->serialize,
-    encode("UTF-8", <<XML), "UTF-8";
+is $xml->serialize, encode("UTF-8", <<XML), "UTF-8";
 <?xml version="1.0" encoding="UTF-8"?>
 <doc a="1">\x{2603}</doc>
 XML
@@ -55,7 +54,7 @@ $writer = XML::Struct::Writer->new( handler => MyHandler->new );
 $xml = $writer->write( [ "foo", { x => 1 }, [ ["bar"], "text" ] ] );
 is_deeply $xml, [
     "start",
-    { Name => "foo", Attributes => { x => 1 } },
+    { Name => "foo", Attributes => { x => { Name => 'x', Value => 1 } } },
     { Name => "bar" },
     { Name => "bar" },
     { Data => "text" },
