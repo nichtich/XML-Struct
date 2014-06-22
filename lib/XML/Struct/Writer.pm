@@ -11,9 +11,9 @@ use Scalar::Util qw(blessed reftype);
 has attributes => (is => 'rw', default => sub { 1 });
 has encoding   => (is => 'rw', default => sub { 'UTF-8' });
 has version    => (is => 'rw', default => sub { '1.0' });
+has standalone => (is => 'rw');
 has pretty     => (is => 'rw', default => sub { 0 }); # 0|1|2
-has xml_decl   => (is => 'rw', default => sub { 1 });
-has xmldecl    => (is => 'rw', lazy => 1, builder => sub { $_[0]->xml_decl }); # deprecated
+has xmldecl    => (is => 'rw', default => sub { 1 });
 
 has to         => (
     is => 'rw',
@@ -105,7 +105,9 @@ sub writeStart {
     $self->handler->start_document;
     if ($self->handler->can('xml_decl') && $self->xmldecl) {
         $self->handler->xml_decl({
-            Version => $self->version, Encoding => $self->encoding
+            Version => $self->version, 
+            Encoding => $self->encoding,
+            Standalone => $self->standalone,
         });
     }
     $self->writeStartElement($_[0]) if @_;
@@ -234,6 +236,10 @@ Sets the XML version (C<1.0> by default).
 =item xmldecl
 
 Include XML declaration on serialization. Enabled by default.
+
+=item standalone
+
+Add standalone flag in the XML declaration.
 
 =item to
 

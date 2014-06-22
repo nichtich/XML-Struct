@@ -36,7 +36,7 @@ XML::Struct::Writer->new( to => \$str )->writeDocument($struct);
 is $str, $xml, 'writeDocument with UTF-8 via SAX';
 
 $str = "";
-XML::Struct::Writer->new( to => \$str, xmldecl => 0 )->writeDocument($struct);
+XML::Struct::Writer->new( to => \$str, xmldecl => 0, pretty => 1 )->writeDocument($struct);
 $xml = encode("UTF-8", "<doc a=\"1\">\x{2603}</doc>\n");
 is $str, $xml, 'omit xml declaration';
 

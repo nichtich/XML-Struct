@@ -15,9 +15,10 @@ our %ESCAPE = (
 );
 
 use constant {
-    TAG_STARTED   => 1,
-    CHAR_CONTENT  => 2,
-    CHILD_ELEMENT => 3,
+    DOCUMENT_STARTED => 0,
+    TAG_STARTED      => 1,
+    CHAR_CONTENT     => 2,
+    CHILD_ELEMENT    => 3,
 };
 
 sub xml_decl { 
@@ -26,8 +27,7 @@ sub xml_decl {
     my $xml =  "<?xml version=\"$data->{Version}\"";
     $xml .= " encoding=\"$data->{Encoding}\"" if $data->{Encoding};
     $xml .= " standalone=\"$data->{Standalone}\"" if $data->{Standalone};
-    $xml .= "?>";
-    $xml .= "\n" unless $self->pretty;
+    $xml .= "?>\n";
 
     print {$self->fh} $xml;
 }
@@ -35,7 +35,7 @@ sub xml_decl {
 sub start_document { 
     my ($self) = @_;
     $self->{_stack} = [];
-    $self->{_status} = CHILD_ELEMENT;
+    $self->{_status} = DOCUMENT_STARTED;
 }
 
 sub start_element {  
@@ -56,7 +56,7 @@ sub start_element {
         }
     } elsif ($self->{_status} == CHAR_CONTENT) {
         print {$self->fh} $self->{_chars};
-    }
+    } # else: DOCUMENT_STARTED
 
     push @{$self->{_stack}}, $tag;
 
