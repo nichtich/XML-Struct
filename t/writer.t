@@ -4,40 +4,56 @@ use XML::Struct::Writer;
 use Encode;
 
 my $writer = XML::Struct::Writer->new;
-my $xml = $writer->writeDocument( [
+my $struct = [
     greet => { }, [
         "Hello, ",
         [ emph => { color => "blue" } , [ "World" ] ],
         "!"
     ]
-] );
-isa_ok $xml, 'XML::LibXML::Document';
-is $xml->serialize, <<'XML', 'writeDocument';
+];
+my $dom = $writer->writeDocument( $struct );
+isa_ok $dom, 'XML::LibXML::Document';
+my $xml = <<'XML';
 <?xml version="1.0" encoding="UTF-8"?>
 <greet>Hello, <emph color="blue">World</emph>!</greet>
 XML
+is $dom->serialize, $xml, 'writeDocument via DOM';
 
-$xml = $writer->writeDocument( [ doc => { a => 1 }, [ "\x{2603}" ] ] );
-is $xml->serialize,
-    encode("UTF-8", <<XML), "UTF-8";
+my $str = "";
+XML::Struct::Writer->new( to => \$str )->writeDocument($struct);
+is $str, $xml, 'writeDocument via SAX';
+
+$struct = [ doc => { a => 1 }, [ "\x{2603}" ] ]; 
+$xml = encode("UTF-8", <<XML);
 <?xml version="1.0" encoding="UTF-8"?>
 <doc a="1">\x{2603}</doc>
 XML
 
-$writer->attributes(0);
-$xml = $writer->writeDocument( [
+$dom = $writer->writeDocument($struct);
+is $dom->serialize, $xml, 'writeDocument with UTF-8 via DOM';
+$str = "";
+XML::Struct::Writer->new( to => \$str )->writeDocument($struct);
+is $str, $xml, 'writeDocument with UTF-8 via SAX';
+
+my $struct = [
     doc => [ 
         [ name => [ "alice" ] ],
         [ name => [ "bob" ] ],
     ] 
-] );
-is $xml->serialize(1), <<XML, "indented, without attributes";
+];
+$xml = <<XML;
 <?xml version="1.0" encoding="UTF-8"?>
 <doc>
   <name>alice</name>
   <name>bob</name>
 </doc>
 XML
+$writer->attributes(0);
+$dom = $writer->writeDocument($struct);
+is $dom->serialize(1), $xml, "writeDocument indented, no attributes";
+$str = "";
+XML::Struct::Writer->new( to => \$str, pretty => 1, attributes => 0 )->writeDocument($struct);
+is $str, $xml, 'writeDocument pretty, no attributes via SAX';
 
 {
     package MyHandler;
