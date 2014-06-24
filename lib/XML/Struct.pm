@@ -111,6 +111,10 @@ creating a DOM object.
 
 Transform XML data structure into simple form. 
 
+=item L<XML::Struct::Writer::Stream>
+
+Simplified SAX handler for XML serialization.
+
 =back
 
 =head1 FUNCTIONS
@@ -173,21 +177,20 @@ document given above woule be transformed to this structure:
         }
     }
 
-
 =head1 SEE ALSO
 
 This module was first created to be used in L<Catmandu::XML> and turned out to
-also become a replacement for L<XML::Simple>.
+also become a replacement for L<XML::Simple>. See the former for more XML
+processing.
 
-See L<XML::Twig> for another popular and powerfull module for stream-based
+L<XML::Twig> is another popular and powerfull module for stream-based
 processing of XML documents.
 
 See L<XML::Smart>, L<XML::Hash::LX>, L<XML::Parser::Style::ETree>,
 L<XML::Fast>, and L<XML::Structured> for different representations of XML data
-as data structures (feel free to implement converters from/to XML::Struct). See 
-
-See L<XML::GenericJSON> for an (outdated and incomplete) attempt to capture more
-parts of XML Infoset in another data structure.
+as data structures (feel free to implement converters from/to XML::Struct).
+L<XML::GenericJSON> seems to be an outdated and incomplete attempt to capture
+more parts of XML Infoset in another data structure.
 
 See JSONx for a kind of reverse direction (JSON in XML).
 
