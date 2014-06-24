@@ -1,24 +1,45 @@
 package XML::Struct::Writer;
-# ABSTRACT: Write XML data structures to XML streams
-# VERSION
+#ABSTRACT: Write XML data structures to XML streams
+#VERSION
 
 use strict;
 use Moo;
 use XML::LibXML::SAX::Builder;
-use Scalar::Util qw(blessed);
-
-has handler => (
-    is => 'rw',
-    default => sub { XML::LibXML::SAX::Builder->new( handler => $_[0] ); }
-);
+use XML::Struct::Writer::Stream;
+use Scalar::Util qw(blessed reftype);
 
 has attributes => (is => 'rw', default => sub { 1 });
 has encoding   => (is => 'rw', default => sub { 'UTF-8' });
 has version    => (is => 'rw', default => sub { '1.0' });
+has standalone => (is => 'rw');
+has pretty     => (is => 'rw', default => sub { 0 }); # 0|1|2
+has xmldecl    => (is => 'rw', default => sub { 1 });
 
-# TODO: use a stream-based writer if option 'to' is set
-has to     => (is => 'rw'); # toFile(filename), toFH(GLOB|IO::Handle)
-has pretty => (is => 'rw', default => sub { 0 }); # 0|1|2
+has to         => (
+    is => 'rw',
+    coerce => sub {
+        return IO::File->new($_[0], "w") unless ref $_[0];
+        if (reftype($_[0]) eq 'SCALAR') {
+            open my $io,">:utf8",$_[0]; 
+            return $io;
+        } else { # IO::Handle, GLOB, ...
+            return $_[0];
+        }
+    }
+);
+
+has handler => (
+    is => 'rw',
+    lazy => 1,
+    builder => sub { 
+        $_[0]->to ? XML::Struct::Writer::Stream->new(
+            fh       => $_[0]->to,
+            encoding => $_[0]->encoding,
+            version  => $_[0]->version,
+            pretty   => $_[0]->pretty,
+        ) : XML::LibXML::SAX::Builder->new( handler => $_[0] ); 
+    }
+);
 
 sub write {
     my ($self, $root) = @_;
@@ -82,9 +103,13 @@ sub writeCharacters {
 sub writeStart {
     my $self = shift;
     $self->handler->start_document;
-    $self->handler->xml_decl({
-        Version => $self->version, Encoding => $self->encoding
-    }) if $self->handler->can('xml_decl');
+    if ($self->handler->can('xml_decl') && $self->xmldecl) {
+        $self->handler->xml_decl({
+            Version => $self->version, 
+            Encoding => $self->encoding,
+            Standalone => $self->standalone,
+        });
+    }
     $self->writeStartElement($_[0]) if @_;
 }
 
@@ -98,6 +123,7 @@ sub writeEnd {
 
     use XML::Struct::Writer;
 
+    # create DOM
     my $xml = XML::Struct::Writer->new->write( [
         greet => { }, [
             "Hello, ",
@@ -110,12 +136,17 @@ sub writeEnd {
     # <?xml version="1.0" encoding="UTF-8"?>
     # <greet>Hello, <emph color="blue">World</emph>!</greet>
 
-    XML::Struct::Writer->new( attributes => 0 )->write( [
+    # serialize
+    XML::Struct::Writer->new(
+        attributes => 0,
+        pretty => 1,
+        to => \*STDOUT,
+    )->write( [
         doc => [ 
             [ name => [ "alice" ] ],
             [ name => [ "bob" ] ],
         ] 
-    ] )->serialize(1); # 1 == pretty
+    ] );
 
     # <?xml version="1.0" encoding="UTF-8"?>
     # <doc>
@@ -182,11 +213,7 @@ can be passed, so C<< $writer->writeEnd($root) >> is equivalent to:
 
 =over
 
-=item C<handler>
-
-Specify a SAX handler that L</"SAX EVENTS"> are send to. 
-
-=item C<attributes>
+=item attributes
 
 Set to true by default to expect attribute hashes in the L<XML::Struct> input
 format. If set to false, XML elements must be passed as
@@ -201,6 +228,28 @@ instead of
 
 Sets the encoding for handlers that support an explicit encoding. Set to UTF-8
 by default.
+
+=item version
+
+Sets the XML version (C<1.0> by default).
+
+=item xmldecl
+
+Include XML declaration on serialization. Enabled by default.
+
+=item standalone
+
+Add standalone flag in the XML declaration.
+
+=item to
+
+Filename, L<IO::Handle>, or other kind of stream to serialize XML to.
+
+=item handler
+
+Specify a SAX handler that L</"SAX EVENTS"> are send to. Automatically set to
+an instance of L<XML::Struct::Writer::Stream> if option C<to> has been
+specified or to an instance of L<XML::LibXML::SAX::Builder> otherwise.
 
 =back
 
