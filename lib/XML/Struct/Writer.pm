@@ -48,7 +48,7 @@ sub write {
     $self->writeElement($root);
     $self->writeEnd;
     
-    return $self->handler->result if $self->handler->can('result');
+    return $self->handler->can('result') ? $self->handler->result ? 1;
 }
 
 *writeDocument = \&write;

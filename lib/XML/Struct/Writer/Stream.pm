@@ -1,11 +1,10 @@
 package XML::Struct::Writer::Stream;
-#ABSTRACT: Simplified SAX handler to serialize (Micro)XML documents
 #VERSION
 
 use Moo;
 
-has fh     => (is => 'ro', default => sub { *STDOUT });
-has pretty => (is => 'ro');
+has fh     => (is => 'rw', default => sub { *STDOUT });
+has pretty => (is => 'rw');
 
 our %ESCAPE = (
     '&' => '&amp;',
@@ -116,9 +115,9 @@ sub end_document {
     print {$self->fh} "\n";
 }
 
-sub result {
-    1;
-}
+=head1 NAME
+
+XML::Struct::Writer::Stream - simplified SAX handler to serialize (Micro)XML
 
 =head1 DESCRIPTION
 
