@@ -17,7 +17,7 @@ sub readXML { # ( [$from], %options )
     my %reader_options = (
         map { $_ => delete $options{$_} }
         grep { exists $options{$_} }
-        qw(attributes whitespace path stream simple micro root ns depth)
+        qw(attributes whitespace path stream simple micro root ns depth content)
     );
     if (%options) {
         if (exists $options{from} and keys %options == 1) {

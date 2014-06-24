@@ -8,6 +8,7 @@ use List::Util qw(first);
 
 has root       => (is => 'rw', default => sub { 0 });
 has attributes => (is => 'rw', default => sub { 1 });
+has content    => (is => 'rw', default => sub { 'content' });
 has depth      => (is => 'rw');
 
 sub transform {
@@ -31,13 +32,13 @@ sub transform {
         $self->depth($self->depth - 1) if defined $self->depth;
 
         my $hash = $attributes
-                ? _simple(1, [ dummy => {}, [$element] ], $self->depth)
-                : _simple(0, [ dummy => [$element] ], $self->depth);
+                ? $self->_simple(1, [ dummy => {}, [$element] ], $self->depth)
+                : $self->_simple(0, [ dummy => [$element] ], $self->depth);
 
         return { $root => values %$hash };
     }
 
-    my $hash = _simple($attributes, $element, $self->depth);
+    my $hash = $self->_simple($attributes, $element, $self->depth);
     $hash = { } unless ref $hash;
 
     return $hash;
@@ -54,24 +55,27 @@ sub removeXMLAttr {
 
 # hashifies attributes and child elements
 sub _simple {
-    my $with_attributes = shift;
-    my ($children, $attributes) = $with_attributes ? ($_[0]->[2], $_[0]->[1]) : ($_[0]->[1]);
-    my $depth = defined $_[1] ? $_[1] - 1 : undef;
+    my $self = shift;
+    my $with_attributes = $_[0];
+    my ($children, $attributes) = $with_attributes ? ($_[1]->[2], $_[1]->[1]) : ($_[1]->[1]);
+    my $depth = defined $_[2] ? $_[2] - 1 : undef;
+
+    my $text_only = (first { ref $_ } @$children) ? undef : join("",@$children);
 
     # empty element or characters only 
-    if (!($attributes and %$attributes) and !first { ref $_ } @$children) {
-        my $text = join "", @$children;
-        return $text ne "" ? $text : { };
+    if (!($attributes and %$attributes) and defined $text_only) {
+        return $text_only ne "" ? $text_only : { };
     }
 
     my $hash = { $attributes ? %$attributes : () };
+    $hash->{ $self->content } = $text_only if defined $text_only and @$children;
 
     foreach my $child ( @$children ) {
         next unless ref $child; # skip mixed content text
         if (defined $depth and $depth < 0) {
             _push_hash( $hash, $child->[0], $child, 1 );
         } else {
-            _push_hash( $hash, $child->[0] => _simple($with_attributes, $child, $depth) );
+            _push_hash( $hash, $child->[0] => $self->_simple($with_attributes, $child, $depth) );
         }
     }
 
@@ -118,19 +122,15 @@ L<XML::Struct> can export the function C<simpleXML> for easy use.
 
 =item root
 
-Keep the root element (just as option C<KeepRoot> in L<XML::Simple>). In
-addition one can set the name of the root element if a non-numeric value is
-passed.
+Keep the root element instead of removing. This corresponds to option
+C<KeepRoot> in L<XML::Simple>. In addition one can set the name of the root
+element if a non-numeric value is passed.
 
-=item depth
+=item content
 
-Only transform to a given depth. See L<XML::Struct::Reader> for documentation.
-
-All elements below the given depth are returned unmodified (not cloned) as
-array elements:
-
-    $data = simpleXML($xml, depth => 2)
-    $content = $data->{x}->{y}; # array or scalar (if existing)
+With option C<simple> enable, text content at elements with attributes is
+parsed into a hash value with this key.  Set to "C<content> by default.
+Corresponds to option C<ContentKey> in L<XML::Simple>.
 
 =item attributes
 
@@ -145,8 +145,8 @@ C<remove> will first remove attributes, so the following three are equivalent:
 
 =back
 
-Key attributes (C<KeyAttr> in L<XML::Simple>) and the option C<ForceArray> are
-not supported yet.
+Option C<KeyAttr>, C<ForceArray>, and other fetures of L<XML::Simple> not
+supported (yet).
 
 =encoding utf8
 
