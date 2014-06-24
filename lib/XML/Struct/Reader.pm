@@ -254,12 +254,12 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
     } 
 
     my $xml = $self->readElement($stream);
-    return $self->simple 
-        ? XML::Struct::simpleXML( $xml, 
-            root => $self->root, 
-            attributes => $self->attributes,
-            depth => $self->depth 
-        ) : $xml;
+
+    return $self->simple ? XML::Struct::Simple->new(
+            root        => $self->root, 
+            attributes  => $self->attributes,
+            depth       => $self->depth 
+        )->transform($xml) : $xml;
 }
 
 *read = \&readNext;

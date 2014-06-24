@@ -102,4 +102,14 @@ is_deeply simpleXML( removeXMLAttr(readXML($xml)), attributes => 0 ), {
 
 }, 'removeXMLAttr';
 
+# object interface
+use XML::Struct::Simple;
+my $converter = XML::Struct::Simple->new( root => 'record' );
+my $struct = [ root => { xmlns => 'http://example.org/' }, 
+               [ '!', [ x => {}, [42] ] ] ];
+
+my $simple = $converter->transform( $struct );
+is_deeply $simple, { record => { xmlns => 'http://example.org/', x => 42 } }, 
+    'XML::Struct::Simple';
+
 done_testing;
