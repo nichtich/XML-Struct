@@ -7,6 +7,7 @@ use Moo;
 use XML::LibXML::SAX::Builder;
 use XML::Struct::Writer::Stream;
 use Scalar::Util qw(blessed reftype);
+use Carp;
 
 has attributes => (is => 'rw', default => sub { 1 });
 has encoding   => (is => 'rw', default => sub { 'UTF-8' });
@@ -14,6 +15,7 @@ has version    => (is => 'rw', default => sub { '1.0' });
 has standalone => (is => 'rw');
 has pretty     => (is => 'rw', default => sub { 0 }); # 0|1|2
 has xmldecl    => (is => 'rw', default => sub { 1 });
+has root       => (is => 'rw', default => sub { 'root' });
 
 has to         => (
     is => 'rw',
@@ -42,33 +44,94 @@ has handler => (
 );
 
 sub write {
-    my ($self, $root) = @_;
+    my $self = shift;
 
     $self->writeStart;
-    $self->writeElement($root);
+    $self->writeElement($self->rootElement(@_));
     $self->writeEnd;
     
-    return $self->handler->can('result') ? $self->handler->result ? 1;
+    $self->handler->can('result') ? $self->handler->result : 1;
 }
 
 *writeDocument = \&write;
 
+sub rootElement {
+    my ($self, $root, $name) = @_;
+
+    if (my $type = reftype($root)) {
+        if ($type eq 'ARRAY') {
+            return $root;
+        } elsif ($type eq 'HASH') {
+            return [
+                $name || $self->root, 
+                simpleChildElements($root)
+            ]
+        }
+    }
+
+    croak "expected ARRAY or HASH as root element";
+}
+
+# convert simple format to MicroXML
+sub simpleChildElements {
+    my ($simple) = @_;
+    [
+        map {
+            my ($tag, $content) = ($_, $simple->{$_});
+            if (!defined $content) {
+                ();
+            } elsif (!ref($content)) {
+                [ $tag, [$content] ]
+            } elsif (reftype($content) eq 'ARRAY') {
+                @$content
+                    ? map { [ $tag, [$_] ] } @$content
+                    : [ $tag ]; 
+            } elsif (reftype($content) eq 'HASH') {
+                [ $tag, {}, $content ];
+            } else {
+                ();
+            }
+        } sort keys %$simple
+    ]
+}
+
+# return child elements as array reference
+sub elementChildren {
+    my ($self, $element) = @_;
+
+    my $children = $element->[
+        !$self->attributes or (reftype($element->[1]) // '') eq 'ARRAY'
+        ? 1 : 2
+    ] // [ ];
+ 
+    my $type = reftype($children);
+    if (!$type) {
+        [ $children ] # simple character content
+    } elsif( $type eq 'ARRAY' ) {
+        [
+            map { 
+                (reftype($_) // '') eq 'HASH' ? @{ simpleChildElements($_) } : $_ 
+            } @$children
+        ]
+    } elsif( $type eq 'HASH' ) {
+        simpleChildElements($children)
+    } else {
+        croak "expected ARRAY or HASH as child elements";
+    }
+}
+
 sub writeElement {
     my $self = shift;
+    
     foreach my $element (@_) {
-
-        my ($children, $attributes) = $self->attributes 
-            ? ($element->[2], $element->[1]) : ($element->[1]);
-
         $self->writeStartElement($element);
 
-        if ($children) {
-            foreach my $child ( @$children ) {
-                if (ref $child) {
-                    $self->writeElement($child);
-                } else {
-                    $self->writeCharacters($child);
-                }
+        my $children = $self->elementChildren($element);
+        foreach my $child ( @$children ) {
+            if (ref $child) {
+                $self->writeElement($child);
+            } else {
+                $self->writeCharacters($child);
             }
         }
 
@@ -79,16 +142,16 @@ sub writeElement {
 sub writeStartElement {
     my ($self, $element) = @_;
 
-    if ($self->attributes and $element->[1]) {
-        $self->handler->start_element( { 
-            Name => $element->[0],
-            Attributes => $element->[1] 
-        } );
-    } else {
-        $self->handler->start_element( { 
-            Name => $element->[0] 
-        } );
+    my $args = { Name => $element->[0] };
+
+    if ($self->attributes) {
+        my $type = reftype($element->[1]);
+        if (defined $type and $type eq 'HASH') {
+            $args->{Attributes} = $element->[1];
+        }
     }
+
+    $self->handler->start_element($args); 
 }
 
 sub writeEndElement {
@@ -110,7 +173,7 @@ sub writeStart {
             Standalone => $self->standalone,
         });
     }
-    $self->writeStartElement($_[0]) if @_;
+    $self->writeStartElement( $self->rootElement(@_) ) if @_;
 }
 
 sub writeEnd {
@@ -163,10 +226,12 @@ L</"SAX EVENTS"> to a SAX handler. The default handler
 L<XML::LibXML::SAX::Builder> creates L<XML::LibXML::Document> that can be used
 to serialize the XML document as string.
 
-=method write( $root ) ==  writeDocument( $root )
+=method write( $root [, $name ] ) == writeDocument( $root [, $name ] )
 
-Write an XML document, given in form of its root element, to the handler.  If
-the handler implements a C<result()> method, it is used to get a return value.
+Write an XML document, given in form of its root element as array reference
+(MicroXML) or in simple format as hash reference with an optional root element
+name (simpleXML). The handler's C<result> method, if implemented, is used to
+get a return value.
 
 For most applications this is the only method one needs to care about. If the
 XML document to be written is not fully given as root element, one has to
@@ -177,7 +242,7 @@ directly call the following methods. This method is basically equivalent to:
     $writer->writeEnd;
     $writer->result if $writer->can('result');
 
-=method writeStart( [ $root ] )
+=method writeStart( [ $root [, $name ] ] )
 
 Call the handler's C<start_document> and C<xml_decl> methods. An optional root
 element can be passed, so C<< $writer->writeStart($root) >> is equivalent to:
@@ -223,6 +288,8 @@ format. If set to false, XML elements must be passed as
 instead of
     
     [ $name => \%attributes, \@children ]
+
+Do B<not> set this to false when serializing simple xml in form of hashes!
 
 =item encoding
 

@@ -107,13 +107,13 @@ Parse XML as stream into XML data structures.
 Write XML data structures to XML streams for serializing, SAX processing, or
 creating a DOM object.
 
-=item L<XML::Struct::Simple>
-
-Transform XML data structure into simple form. 
-
 =item L<XML::Struct::Writer::Stream>
 
 Simplified SAX handler for XML serialization.
+
+=item L<XML::Struct::Simple>
+
+Transform XML data structure into simple form. 
 
 =back
 

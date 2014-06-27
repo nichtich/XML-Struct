@@ -78,7 +78,7 @@ sub end_element {
     my $tag = pop @{$self->{_stack}} or return;
 
     if ($self->{_status} == TAG_STARTED) {
-        print {$self->fh} ' />';
+        print {$self->fh} '/>';
     } elsif ($self->{_status} == CHAR_CONTENT) {
         print {$self->fh} $self->{_chars} . "</$tag>";
         $self->{_chars} = "";
