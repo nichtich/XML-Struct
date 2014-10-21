@@ -1,0 +1,42 @@
+Source: libxml-struct-perl
+Section: perl
+Priority: optional
+Build-Depends: cdbs,
+ devscripts,
+ perl,
+ debhelper,
+ dh-buildinfo,
+ libmoo-perl (>= 1),
+ libxml-libxml-perl (>= 2)
+Maintainer: Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
+Uploaders: Jonas Smedegaard <dr@jones.dk>
+Standards-Version: 3.9.6
+Vcs-Git: git://anonscm.debian.org/pkg-perl/packages/libxml-struct-perl
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-perl/packages/libxml-struct-perl.git
+Homepage: https://github.com/nichtich/XML-Struct
+
+Package: libxml-struct-perl
+Architecture: all
+Depends: ${perl:Depends}, ${misc:Depends}, ${cdbs:Depends}
+Enhances: ${cdbs:Enhances}
+Description: represent XML as data structure preserving element order
+ XML::Struct implements a mapping between XML and Perl data structures.
+ By default, the mapping preserves element order, so it also suits for
+ "document-oriented" XML.  In short, an XML element is represented as
+ array reference with three parts:
+ .
+   [ $name => \%attributes, \@children ]
+ .
+ This data structure corresponds to the abstract data model of
+ MicroXML <http://www.w3.org/community/microxml/>, a simplified subset
+ of XML.
+ .
+ If your XML documents don't contain relevant attributes, you can also
+ choose to map to this format:
+ .
+   [ $name => \@children ]
+ .
+ Both parsing (with XML::Struct::Reader or function readXML) and
+ serializing (with XML::Struct::Writer or function writeXML) are fully
+ based on XML::LibXML, so performance is better than XML::Simple and
+ similar to XML::LibXML::Simple.

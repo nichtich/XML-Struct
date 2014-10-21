@@ -1,0 +1,6 @@
+libxml-struct-perl (0.23-1) unstable; urgency=low
+
+  * Initial Release.
+    Closes: bug#766238.
+
+ -- Jonas Smedegaard <dr@jones.dk>  Tue, 21 Oct 2014 19:58:12 +0200

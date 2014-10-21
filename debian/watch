@@ -1,0 +1,4 @@
+# compare versions by each digit: upstream strip trailing zeros
+version=3
+http://www.cpan.org/authors/id/V/VO/VOJ/XML-Struct-([\d.]+)\.tar\.gz
+https://metacpan.org/release/XML-Struct .*/XML-Struct-([\d.]+)\.tar\.gz
