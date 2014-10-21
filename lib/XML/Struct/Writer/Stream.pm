@@ -1,5 +1,5 @@
 package XML::Struct::Writer::Stream;
-#VERSION
+our $VERSION = '0.23'; #VERSION
 
 use Moo;
 
@@ -115,9 +115,22 @@ sub end_document {
     print {$self->fh} "\n";
 }
 
+
+1;
+
+__END__
+
+=pod
+
+=encoding UTF-8
+
 =head1 NAME
 
-XML::Struct::Writer::Stream - simplified SAX handler to serialize (Micro)XML
+XML::Struct::Writer::Stream
+
+=head1 VERSION
+
+version 0.23
 
 =head1 DESCRIPTION
 
@@ -127,6 +140,10 @@ MicroXML are not supported.
 
 The handler is written to reproduce the serialization of libxml as much as
 possible.
+
+=head1 NAME
+
+XML::Struct::Writer::Stream - simplified SAX handler to serialize (Micro)XML
 
 =head1 CONFIGURATION
 
@@ -148,8 +165,15 @@ See L<XML::SAX::Writer>, L<XML::Genx::SAXWriter>, and L<XML::Handler::YAWriter>
 for more elaborated SAX writers and L<XML::Writer> for a general XML writer,
 not based on SAX.
 
-=encoding utf8
+=head1 AUTHOR
+
+Jakob Voß
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by Jakob Voß.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
-
-1;

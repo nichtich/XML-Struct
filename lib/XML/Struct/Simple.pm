@@ -1,6 +1,6 @@
 package XML::Struct::Simple;
 # ABSTRACT: Transform MicroXML data structures into simple (unordered) form
-# VERSION
+our $VERSION = '0.23'; # VERSION
 
 use strict;
 use Moo;
@@ -97,6 +97,23 @@ sub _push_hash {
     }
 }
 
+
+1;
+
+__END__
+
+=pod
+
+=encoding UTF-8
+
+=head1 NAME
+
+XML::Struct::Simple - Transform MicroXML data structures into simple (unordered) form
+
+=head1 VERSION
+
+version 0.23
+
 =head1 SYNOPSIS
 
     my $converter = XML::Struct::Simple->new( root => 'record' );
@@ -148,8 +165,15 @@ C<remove> will first remove attributes, so the following three are equivalent:
 Option C<KeyAttr>, C<ForceArray>, and other fetures of L<XML::Simple> not
 supported (yet).
 
-=encoding utf8
+=head1 AUTHOR
+
+Jakob Voß
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by Jakob Voß.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
-
-1;
