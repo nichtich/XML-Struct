@@ -1,10 +1,9 @@
 package XML::Struct::Simple;
-# ABSTRACT: Transform MicroXML data structures into simple (unordered) form
-# VERSION
-
 use strict;
 use Moo;
 use List::Util qw(first);
+
+our $VERSION = '0.23';
 
 has root       => (is => 'rw', default => sub { 0 });
 has attributes => (is => 'rw', default => sub { 1 });
@@ -97,6 +96,16 @@ sub _push_hash {
     }
 }
 
+
+1;
+__END__
+
+=encoding UTF-8
+
+=head1 NAME
+
+XML::Struct::Simple - Transform MicroXML data structures into simple (unordered) form
+
 =head1 SYNOPSIS
 
     my $converter = XML::Struct::Simple->new( root => 'record' );
@@ -148,8 +157,4 @@ C<remove> will first remove attributes, so the following three are equivalent:
 Option C<KeyAttr>, C<ForceArray>, and other fetures of L<XML::Simple> not
 supported (yet).
 
-=encoding utf8
-
 =cut
-
-1;

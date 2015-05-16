@@ -1,13 +1,13 @@
 package XML::Struct::Writer;
-#ABSTRACT: Write XML data structures to XML streams
-#VERSION
-
 use strict;
+
 use Moo;
 use XML::LibXML::SAX::Builder;
 use XML::Struct::Writer::Stream;
 use Scalar::Util qw(blessed reftype);
 use Carp;
+
+our $VERSION = '0.23';
 
 has attributes => (is => 'rw', default => sub { 1 });
 has encoding   => (is => 'rw', default => sub { 'UTF-8' });
@@ -182,6 +182,16 @@ sub writeEnd {
     $self->handler->end_document;
 }
 
+
+1;
+__END__
+
+=encoding UTF-8
+
+=head1 NAME
+
+XML::Struct::Writer - Write XML data structures to XML streams
+
 =head1 SYNOPSIS
 
     use XML::Struct::Writer;
@@ -226,7 +236,9 @@ L</"SAX EVENTS"> to a SAX handler. The default handler
 L<XML::LibXML::SAX::Builder> creates L<XML::LibXML::Document> that can be used
 to serialize the XML document as string.
 
-=method write( $root [, $name ] ) == writeDocument( $root [, $name ] )
+=head1 METHODS
+
+=head2 write( $root [, $name ] ) == writeDocument( $root [, $name ] )
 
 Write an XML document, given in form of its root element as array reference
 (MicroXML) or in simple format as hash reference with an optional root element
@@ -242,7 +254,7 @@ directly call the following methods. This method is basically equivalent to:
     $writer->writeEnd;
     $writer->result if $writer->can('result');
 
-=method writeStart( [ $root [, $name ] ] )
+=head2 writeStart( [ $root [, $name ] ] )
 
 Call the handler's C<start_document> and C<xml_decl> methods. An optional root
 element can be passed, so C<< $writer->writeStart($root) >> is equivalent to:
@@ -250,23 +262,23 @@ element can be passed, so C<< $writer->writeStart($root) >> is equivalent to:
     $writer->writeStart;
     $writer->writeStartElement($root);
 
-=method writeElement( $element [, @more_elements ] )
+=head2 writeElement( $element [, @more_elements ] )
 
 Write one or more XML elements, including their child elements, to the handler.
 
-=method writeStartElement( $element )
+=head2 writeStartElement( $element )
 
 Directly call the handler's C<start_element> method.
 
-=method writeEndElement( $element )
+=head2 writeEndElement( $element )
 
 Directly call the handler's C<end_element> method.
 
-=method writeCharacters( $string )
+=head2 writeCharacters( $string )
 
 Directy call the handler's C<characters> method.
 
-=method writeEnd( [ $root ] )
+=head2 writeEnd( [ $root ] )
 
 Directly call the handler's C<end_document> method. An optional root element
 can be passed, so C<< $writer->writeEnd($root) >> is equivalent to:
@@ -286,7 +298,7 @@ format. If set to false, XML elements must be passed as
     [ $name => \@children ]
 
 instead of
-    
+
     [ $name => \%attributes, \@children ]
 
 Do B<not> set this to false when serializing simple xml in form of hashes!
@@ -368,8 +380,4 @@ should be more performant for serialization. Examples of other modules that
 receive SAX events include L<XML::STX>, L<XML::SAX::SimpleDispatcher>, and
 L<XML::SAX::Machines>,
 
-=encoding utf8
-
 =cut
-
-1;

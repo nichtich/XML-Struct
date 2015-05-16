@@ -1,6 +1,4 @@
 package XML::Struct;
-# ABSTRACT: Represent XML as data structure preserving element order
-# VERSION
 
 use strict;
 use XML::LibXML::Reader;
@@ -8,6 +6,7 @@ use XML::Struct::Reader;
 use XML::Struct::Writer;
 use XML::Struct::Simple;
 
+our $VERSION = '0.23';
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(readXML writeXML simpleXML removeXMLAttr textValues);
 
@@ -54,6 +53,15 @@ sub textValues {
         ref $_ ?  textValues($_, $options) : $_
     } @$children;
 }
+
+1;
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+XML-Struct - Represent XML as data structure preserving element order
 
 =head1 SYNOPSIS
 
@@ -167,7 +175,7 @@ is transformed to this structure:
 
 This module also supports a simple key-value (aka "data-oriented") format, as
 used by L<XML::Simple>. With option C<simple> (or function C<simpleXML>) the
-document given above woule be transformed to this structure:
+document given above would be transformed to this structure:
 
     {
         foo => "text",
@@ -194,8 +202,10 @@ more parts of XML Infoset in another data structure.
 
 See JSONx for a kind of reverse direction (JSON in XML).
 
-=encoding utf8
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by Jakob Voß.
+
+This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.
 
 =cut
-
-1;

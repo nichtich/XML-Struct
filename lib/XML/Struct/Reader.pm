@@ -1,13 +1,13 @@
 package XML::Struct::Reader;
-# ABSTRACT: Read XML streams into XML data structures
-# VERSION
-
 use strict;
+
 use Moo;
 use Carp qw(croak);
 our @CARP_NOT = qw(XML::Struct);
 use Scalar::Util qw(blessed);
 use XML::Struct;
+
+our $VERSION = '0.23';
 
 has whitespace => (is => 'rw', default => sub { 0 });
 has attributes => (is => 'rw', default => sub { 1 });
@@ -37,30 +37,6 @@ use XML::LibXML::Reader qw(
     XML_READER_TYPE_END_ELEMENT
 ); 
 
-=head1 SYNOPSIS
-
-    my $reader = XML::Struct::Reader->new( from => "file.xml" );
-    my $data   = $reader->read;
-
-=encoding utf8
-
-=head1 DESCRIPTION
-
-This module reads an XML stream (via L<XML::LibXML::Reader>) into
-L<XML::Struct>/MicroXML data structures.
-
-=head1 CONFIGURATION
-
-=over
-
-=item from
-
-A source to read from. Possible values include a string or string reference
-with XML data, a filename, an URL, a file handle, instances of
-L<XML::LibXML::Document> or L<XML::LibXML::Element>, and a hash reference with
-options passed to L<XML::LibXML::Reader>.
-
-=cut
 
 sub _trigger_from {
     my ($self, $from) = @_;
@@ -103,74 +79,6 @@ sub _trigger_from {
     $self->stream( $from );
 }
 
-=item stream
-
-A L<XML::LibXML::Reader> to read from. If no stream has been defined, one must
-pass a stream parameter to the C<read...> methods. Setting a source with option
-C<from> automatically sets a stream.
-
-=item attributes
-
-Include attributes (enabled by default). If disabled, the representation of
-an XML element will be
-
-   [ $name => \@children ]
-
-instead of
-
-   [ $name => \%attributes, \@children ]
-
-=item path
-
-Optional path expression to be used as default value when calling C<read>.
-Pathes must either be absolute (starting with "C</>") or consist of a single
-element name. The special name "C<*>" matches all element names.
-
-A path is a very reduced form of an XPath expressions (no axes, no "C<..>", no
-node tests, C<//> only at the start...).  Namespaces are not supported yet.
-
-=item whitespace
-
-Include ignorable whitespace as text elements (disabled by default)
-
-=item ns
-
-Define how XML namespaces should be processed. By default (value 'C<keep>'),
-this document:
-
-    <doc>
-      <x:foo xmlns:x="http://example.org/" bar="doz" />
-    </doc>
-
-is transformed to this structure, keeping namespace prefixes and declarations 
-as unprocessed element names and attributes:
-    
-    [ 'doc', {}, [
-        [
-          'x:foo', {
-              'bar' => 'doz',
-              'xmlns:x' => 'http://example.org/'
-          }
-        ]
-    ]
-
-Setting this option to 'C<strip>' will remove all namespace prefixes and
-namespace declaration attributes, so the result would be:
-
-    [ 'doc', {}, [
-        [
-          'foo', {
-              'bar' => 'doz'
-          }
-        ]
-    ]
-
-Setting this option to 'C<disallow>' results in an error when namespace
-prefixes or declarations are read.
-
-Expanding namespace URIs ('C<expand'>) is not supported yet.
-
-=cut
 
 sub _trigger_ns {
     my ($self, $ns) = @_;
@@ -182,41 +90,6 @@ sub _trigger_ns {
     }
 }
 
-=item simple
-
-Convert XML to simple key-value structure as known from L<XML::Simple>.
-
-=item depth
-
-Only transform to a given depth. All elements below the given depth are
-returned unmodified (not cloned) as ordered XML:
-
-    $data = simpleXML($xml, depth => 2)
-    $content = $data->{x}->{y}; # array or scalar (if existing)
-
-This option is useful for instance to access document-oriented XML embedded in
-data oriented XML. 
-
-Use any negative or non-numeric value for unlimited depth. The root element
-only counts as one level if option C<root> is enabled.  Depth zero (and depth
-one if with root) are only supported experimentally!
-
-=item root
-
-=item content
-
-These options are only relevant when option C<simple> is true. See
-L<XML::Struct::Simple> for documentation.
-
-=back
-
-=method read = readNext ( [ $stream ] [, $path ] )
-
-Read the next XML element from a stream. If no path option is specified, the
-reader's path option is used ("C<*>" by default, first matching the root, then
-every other element). 
-
-=cut
 
 sub _checkPath {
     my $path = shift;
@@ -228,10 +101,11 @@ sub _checkPath {
 }
 
 sub _nameMatch {
-   return ($_[0] eq '*' or $_[0] eq $_[1]); 
+    return ($_[0] eq '*' or $_[0] eq $_[1]); 
 }
 
-sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more performance
+# TODO: use XML::LibXML::Reader->nextPatternMatch for more performance
+sub readNext { 
     my $self   = shift;
     my $stream = blessed $_[0] ? shift() : $self->stream;
     my $path   = defined $_[0] ? _checkPath($_[0]) : $self->path;
@@ -275,15 +149,6 @@ sub readNext { # TODO: use XML::LibXML::Reader->nextPatternMatch for more perfor
 
 *read = \&readNext;
 
-=method readDocument( [ $stream ] [, $path ] )
-
-Read an entire XML document. In contrast to C<read>/C<readNext>, this method
-always reads the entire stream. The return value is the first element (that is
-the root element by default) in scalar context and a list of elements in array
-context. Multiple elements can be returned for instance when a path was
-specified to select document fragments.
-
-=cut
 
 sub readDocument {
     my $self = shift;
@@ -310,14 +175,6 @@ sub _name {
     return $stream->name;
 }
 
-=method readElement( [ $stream ] )
-
-Read an XML element from a stream and return it as array reference with element name,
-attributes, and child elements. In contrast to method C<read>, this method expects
-the stream to be at an element node (C<< $stream->nodeType == 1 >>) or bad things
-might happed.
-
-=cut
 
 sub readElement {
     my $self   = shift;
@@ -336,12 +193,6 @@ sub readElement {
     return \@element;
 }
 
-=method readAttributes( [ $stream ] )
-
-Read all XML attributes from a stream and return a (possibly empty) hash
-reference.
-
-=cut
 
 sub readAttributes {
     my $self   = shift;
@@ -360,13 +211,6 @@ sub readAttributes {
     return $attr;
 }
 
-=method readContent( [ $stream ] )
-
-Read all child elements of an XML element and return the result as (possibly
-empty) array reference.  Significant whitespace is only included if option
-C<whitespace> is enabled.
-
-=cut
 
 sub readContent {
     my $self   = shift;
@@ -392,3 +236,162 @@ sub readContent {
 }
 
 1;
+__END__
+
+=encoding UTF-8
+
+=head1 NAME
+
+XML::Struct::Reader - Read XML streams into XML data structures
+
+=head1 SYNOPSIS
+
+    my $reader = XML::Struct::Reader->new( from => "file.xml" );
+    my $data   = $reader->read;
+
+=head1 DESCRIPTION
+
+This module reads an XML stream (via L<XML::LibXML::Reader>) into
+L<XML::Struct>/MicroXML data structures.
+
+=head1 METHODS
+
+=head2 read = readNext ( [ $stream ] [, $path ] )
+
+Read the next XML element from a stream. If no path option is specified, the
+reader's path option is used ("C<*>" by default, first matching the root, then
+every other element). 
+
+=head2 readDocument( [ $stream ] [, $path ] )
+
+Read an entire XML document. In contrast to C<read>/C<readNext>, this method
+always reads the entire stream. The return value is the first element (that is
+the root element by default) in scalar context and a list of elements in array
+context. Multiple elements can be returned for instance when a path was
+specified to select document fragments.
+
+=head2 readElement( [ $stream ] )
+
+Read an XML element from a stream and return it as array reference with element name,
+attributes, and child elements. In contrast to method C<read>, this method expects
+the stream to be at an element node (C<< $stream->nodeType == 1 >>) or bad things
+might happed.
+
+=head2 readAttributes( [ $stream ] )
+
+Read all XML attributes from a stream and return a (possibly empty) hash
+reference.
+
+=head2 readContent( [ $stream ] )
+
+Read all child elements of an XML element and return the result as (possibly
+empty) array reference.  Significant whitespace is only included if option
+C<whitespace> is enabled.
+
+=head1 CONFIGURATION
+
+=over
+
+=item from
+
+A source to read from. Possible values include a string or string reference
+with XML data, a filename, an URL, a file handle, instances of
+L<XML::LibXML::Document> or L<XML::LibXML::Element>, and a hash reference with
+options passed to L<XML::LibXML::Reader>.
+
+=item stream
+
+A L<XML::LibXML::Reader> to read from. If no stream has been defined, one must
+pass a stream parameter to the C<read...> methods. Setting a source with option
+C<from> automatically sets a stream.
+
+=item attributes
+
+Include attributes (enabled by default). If disabled, the representation of
+an XML element will be
+
+   [ $name => \@children ]
+
+instead of
+
+   [ $name => \%attributes, \@children ]
+
+=item path
+
+Optional path expression to be used as default value when calling C<read>.
+Pathes must either be absolute (starting with "C</>") or consist of a single
+element name. The special name "C<*>" matches all element names.
+
+A path is a very reduced form of an XPath expressions (no axes, no "C<..>", no
+node tests, C<//> only at the start...).  Namespaces are not supported yet.
+
+=item whitespace
+
+Include ignorable whitespace as text elements (disabled by default)
+
+=item ns
+
+Define how XML namespaces should be processed. By default (value 'C<keep>'),
+this document:
+
+    <doc>
+      <x:foo xmlns:x="http://example.org/" bar="doz" />
+    </doc>
+
+is transformed to this structure, keeping namespace prefixes and declarations 
+as unprocessed element names and attributes:
+
+    [ 'doc', {}, [
+        [
+          'x:foo', {
+              'bar' => 'doz',
+              'xmlns:x' => 'http://example.org/'
+          }
+        ]
+    ]
+
+Setting this option to 'C<strip>' will remove all namespace prefixes and
+namespace declaration attributes, so the result would be:
+
+    [ 'doc', {}, [
+        [
+          'foo', {
+              'bar' => 'doz'
+          }
+        ]
+    ]
+
+Setting this option to 'C<disallow>' results in an error when namespace
+prefixes or declarations are read.
+
+Expanding namespace URIs ('C<expand'>) is not supported yet.
+
+=item simple
+
+Convert XML to simple key-value structure as known from L<XML::Simple>.
+
+=item depth
+
+Only transform to a given depth. All elements below the given depth are
+returned unmodified (not cloned) as ordered XML:
+
+    $data = simpleXML($xml, depth => 2)
+    $content = $data->{x}->{y}; # array or scalar (if existing)
+
+This option is useful for instance to access document-oriented XML embedded in
+data oriented XML. 
+
+Use any negative or non-numeric value for unlimited depth. The root element
+only counts as one level if option C<root> is enabled.  Depth zero (and depth
+one if with root) are only supported experimentally!
+
+=item root
+
+=item content
+
+These options are only relevant when option C<simple> is true. See
+L<XML::Struct::Simple> for documentation.
+
+=back
+
+=cut

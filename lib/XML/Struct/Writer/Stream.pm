@@ -1,7 +1,8 @@
 package XML::Struct::Writer::Stream;
-#VERSION
-
+use strict;
 use Moo;
+
+our $VERSION = '0.23';
 
 has fh     => (is => 'rw', default => sub { *STDOUT });
 has pretty => (is => 'rw');
@@ -115,18 +116,21 @@ sub end_document {
     print {$self->fh} "\n";
 }
 
+
+1;
+__END__
+
 =head1 NAME
 
 XML::Struct::Writer::Stream - simplified SAX handler to serialize (Micro)XML
 
 =head1 DESCRIPTION
 
-This class implements a simplfied SAX handler for stream-based serialization of
-XML. DTDs, comments, processing instructions and similar features not part of
-MicroXML are not supported.
+This class implements a simplfied SAX handler for stream-based serialization
+of XML. DTDs, comments, processing instructions and similar features not part
+of MicroXML are not supported.
 
-The handler is written to reproduce the serialization of libxml as much as
-possible.
+The handler is written to reproduce the serialization of libxml.
 
 =head1 CONFIGURATION
 
@@ -148,8 +152,4 @@ See L<XML::SAX::Writer>, L<XML::Genx::SAXWriter>, and L<XML::Handler::YAWriter>
 for more elaborated SAX writers and L<XML::Writer> for a general XML writer,
 not based on SAX.
 
-=encoding utf8
-
 =cut
-
-1;
