@@ -63,6 +63,16 @@ __END__
 
 XML-Struct - Represent XML as data structure preserving element order
 
+=begin markdown
+
+# Status
+
+[![Build Status](https://travis-ci.org/nichtich/XML-Struct.png)](https://travis-ci.org/nichtich/XML-Struct)
+[![Coverage Status](https://coveralls.io/repos/nichtich/XML-Struct/badge.png)](https://coveralls.io/r/nichtich/XML-Struct)
+[![Kwalitee Score](http://cpants.cpanauthors.org/dist/XML-Struct.png)](http://cpants.cpanauthors.org/dist/XML-Struct)
+
+=end markdown
+
 =head1 SYNOPSIS
 
     use XML::Struct qw(readXML writeXML simpleXML removeXMLAttr);
