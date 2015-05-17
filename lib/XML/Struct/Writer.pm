@@ -7,7 +7,7 @@ use XML::Struct::Writer::Stream;
 use Scalar::Util qw(blessed reftype);
 use Carp;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 has attributes => (is => 'rw', default => sub { 1 });
 has encoding   => (is => 'rw', default => sub { 'UTF-8' });
@@ -15,13 +15,13 @@ has version    => (is => 'rw', default => sub { '1.0' });
 has standalone => (is => 'rw');
 has pretty     => (is => 'rw', default => sub { 0 }); # 0|1|2
 has xmldecl    => (is => 'rw', default => sub { 1 });
-has root       => (is => 'rw', default => sub { 'root' });
 
 has to         => (
-    is => 'rw',
+    is => 'ro',
     coerce => sub {
-        return IO::File->new($_[0], "w") unless ref $_[0];
-        if (reftype($_[0]) eq 'SCALAR') {
+        if (!ref $_[0]) {
+            return IO::File->new($_[0], 'w');
+        } elsif (reftype $_[0] eq 'SCALAR') {
             open my $io,">:utf8",$_[0]; 
             return $io;
         } else { # IO::Handle, GLOB, ...
@@ -31,8 +31,7 @@ has to         => (
 );
 
 has handler => (
-    is => 'rw',
-    lazy => 1,
+    is => 'lazy',
     builder => sub { 
         $_[0]->to ? XML::Struct::Writer::Stream->new(
             fh       => $_[0]->to,
@@ -40,14 +39,16 @@ has handler => (
             version  => $_[0]->version,
             pretty   => $_[0]->pretty,
         ) : XML::LibXML::SAX::Builder->new( handler => $_[0] ); 
-    }
+    },
 );
 
 sub write {
-    my $self = shift;
+    my ($self, $element, $name) = @_;
 
     $self->writeStart;
-    $self->writeElement($self->rootElement(@_));
+    $self->writeElement(
+        $self->microXML($element, $name // 'root')
+    );
     $self->writeEnd;
     
     $self->handler->can('result') ? $self->handler->result : 1;
@@ -55,69 +56,57 @@ sub write {
 
 *writeDocument = \&write;
 
-sub rootElement {
-    my ($self, $root, $name) = @_;
+# TODO: Make available as function in XML::Struct
+sub microXML {
+    my ($self, $element, $name) = @_;
 
-    if (my $type = reftype($root)) {
+    my $type = reftype $element;
+    if ($type) {
+        # MicroXML
         if ($type eq 'ARRAY') {
-            return $root;
+            if (@$element == 1) {
+                return $element;
+            } elsif (@$element == 2) { 
+                if ( (reftype $element->[1] // '') eq 'ARRAY') {
+                    return [ $element->[0], {}, $element->[1] ];
+                } elsif (!$self->attributes and %{$element->[1]}) {
+                    return [ $element->[0] ];
+                } else {
+                    return $element;
+                }
+            } else {
+                if (!$self->attributes and %{$element->[1]}) {
+                    return [ $element->[0], {}, $element->[2] ];
+                } else {
+                    return $element;
+                }
+            }
+        # SimpleXML
         } elsif ($type eq 'HASH') {
-            return [
-                $name || $self->root, 
-                simpleChildElements($root)
-            ]
+            my $children = [
+                map {
+                    my ($tag, $content) = ($_, $element->{$_});
+                    # text
+                    if (!ref $content) {
+                        [ $tag, {}, [$content] ]
+                    } elsif (reftype $content eq 'ARRAY') {
+                        @$content
+                            ? map { [ $tag, {}, [$_] ] } @$content
+                            : [ $tag ]; 
+                    } elsif (reftype $content  eq 'HASH' ) {
+                        [ $tag, {}, [ $content ] ];
+                    } else {
+                        ();
+                    }
+                }
+                grep { defined $element->{$_} }
+                sort keys %$element
+            ];
+            return $name ? [ $name, {}, $children ] : @$children;
         }
     }
 
-    croak "expected ARRAY or HASH as root element";
-}
-
-# convert simple format to MicroXML
-sub simpleChildElements {
-    my ($simple) = @_;
-    [
-        map {
-            my ($tag, $content) = ($_, $simple->{$_});
-            if (!defined $content) {
-                ();
-            } elsif (!ref($content)) {
-                [ $tag, [$content] ]
-            } elsif (reftype($content) eq 'ARRAY') {
-                @$content
-                    ? map { [ $tag, [$_] ] } @$content
-                    : [ $tag ]; 
-            } elsif (reftype($content) eq 'HASH') {
-                [ $tag, {}, $content ];
-            } else {
-                ();
-            }
-        } sort keys %$simple
-    ]
-}
-
-# return child elements as array reference
-sub elementChildren {
-    my ($self, $element) = @_;
-
-    my $children = $element->[
-        !$self->attributes or (reftype($element->[1]) // '') eq 'ARRAY'
-        ? 1 : 2
-    ] // [ ];
- 
-    my $type = reftype($children);
-    if (!$type) {
-        [ $children ] # simple character content
-    } elsif( $type eq 'ARRAY' ) {
-        [
-            map { 
-                (reftype($_) // '') eq 'HASH' ? @{ simpleChildElements($_) } : $_ 
-            } @$children
-        ]
-    } elsif( $type eq 'HASH' ) {
-        simpleChildElements($children)
-    } else {
-        croak "expected ARRAY or HASH as child elements";
-    }
+    croak "expected XML as ARRAY or HASH reference";
 }
 
 sub writeElement {
@@ -125,11 +114,9 @@ sub writeElement {
     
     foreach my $element (@_) {
         $self->writeStartElement($element);
-
-        my $children = $self->elementChildren($element);
-        foreach my $child ( @$children ) {
+        foreach my $child ( @{ $element->[2] // [] } ) {
             if (ref $child) {
-                $self->writeElement($child);
+                $self->writeElement( $self->microXML($child) );
             } else {
                 $self->writeCharacters($child);
             }
@@ -143,20 +130,14 @@ sub writeStartElement {
     my ($self, $element) = @_;
 
     my $args = { Name => $element->[0] };
-
-    if ($self->attributes) {
-        my $type = reftype($element->[1]);
-        if (defined $type and $type eq 'HASH') {
-            $args->{Attributes} = $element->[1];
-        }
-    }
+    $args->{Attributes} = $element->[1] if $element->[1];
 
     $self->handler->start_element($args); 
 }
 
 sub writeEndElement {
     my ($self, $element) = @_;
-    $self->handler->end_element( { Name => $element->[0] } );
+    $self->handler->end_element({ Name => $element->[0] });
 }
 
 sub writeCharacters {
@@ -173,15 +154,14 @@ sub writeStart {
             Standalone => $self->standalone,
         });
     }
-    $self->writeStartElement( $self->rootElement(@_) ) if @_;
+    $self->writeStartElement(@_) if @_;
 }
 
 sub writeEnd {
     my $self = shift;
-    $self->writeEndElement($_[0]) if @_;
+    $self->writeEndElement(@_) if @_;
     $self->handler->end_document;
 }
-
 
 1;
 __END__
@@ -196,24 +176,11 @@ XML::Struct::Writer - Write XML data structures to XML streams
 
     use XML::Struct::Writer;
 
-    # create DOM
-    my $xml = XML::Struct::Writer->new->write( [
-        greet => { }, [
-            "Hello, ",
-            [ emph => { color => "blue" } , [ "World" ] ],
-            "!"
-        ]
-    ] ); 
-    $xml->toFile("greet.xml");
-
-    # <?xml version="1.0" encoding="UTF-8"?>
-    # <greet>Hello, <emph color="blue">World</emph>!</greet>
-
     # serialize
     XML::Struct::Writer->new(
+        to => \*STDOUT,
         attributes => 0,
         pretty => 1,
-        to => \*STDOUT,
     )->write( [
         doc => [ 
             [ name => [ "alice" ] ],
@@ -227,32 +194,112 @@ XML::Struct::Writer - Write XML data structures to XML streams
     #  <name>bob</name>
     # </doc>
 
+    # create DOM
+    my $xml = XML::Struct::Writer->new->write( [
+        greet => { }, [
+            "Hello, ",
+            [ emph => { color => "blue" } , [ "World" ] ],
+            "!"
+        ]
+    ] ); 
+    $xml->toFile("greet.xml");
+
+    # <?xml version="1.0" encoding="UTF-8"?>
+    # <greet>Hello, <emph color="blue">World</emph>!</greet>
+
 =head1 DESCRIPTION
 
-This module writes an XML document, given as L<XML::Struct> data structure.
+This module writes an XML document, given as L<XML::Struct> data structure, as
+stream of L</"SAX EVENTS">. The default handler receives these events with
+L<XML::LibXML::SAX::Builder> to build a DOM tree which can then be used to
+serialize the XML document as string.  The writer can also be used to directly
+serialize XML with L<XML::Struct::Writer::Stream>.
 
-L<XML::Struct::Writer> can act as SAX event generator that sequentially sends
-L</"SAX EVENTS"> to a SAX handler. The default handler
-L<XML::LibXML::SAX::Builder> creates L<XML::LibXML::Document> that can be used
-to serialize the XML document as string.
+L<XML::Struct> provides the shortcut function C<writeXML> to this module.
+
+XML elements can be passed in any of these forms and its combinations:
+
+    # MicroXML:
+
+     [ $name => \%attributes, \@children ]
+
+     [ $name => \%attributes ]
+
+     [ $name ] 
+
+    # lax MicroXML also:
+
+     [ $name => \@children ]
+
+    # SimpleXML:
+
+     { $name => \@children, $name => $content,  ... }
+
+=head1 CONFIGURATION
+
+A XML::Struct::Writer can be configured with the following options:
+
+=over
+
+=item to
+
+Filename, L<IO::Handle>, string reference, or other kind of stream to directly
+serialize XML to with L<XML::Struct::Writer::Stream>. This option is ignored
+if C<handler> is explicitly set.
+
+=item handler
+
+A SAX handler to send L</"SAX EVENTS"> to. If neither this option nor C<to> is
+explicitly set, an instance of L<XML::LibXML::SAX::Builder> is used to build a
+DOM.
+
+=item attributes
+
+Ignore XML attributes if set to false. Set to true by default.
+
+=item xmldecl
+
+Include XML declaration on serialization. Enabled by default.
+
+=item encoding
+
+An encoding (for handlers that support an explicit encoding). Set to UTF-8
+by default.
+
+=item version
+
+The XML version. Set to C<1.0> by default.
+
+=item standalone
+
+Add standalone flag in the XML declaration.
+
+=item pretty
+
+Pretty-print XML. Disabled by default. 
+
+=back
 
 =head1 METHODS
 
 =head2 write( $root [, $name ] ) == writeDocument( $root [, $name ] )
 
-Write an XML document, given in form of its root element as array reference
-(MicroXML) or in simple format as hash reference with an optional root element
-name (simpleXML). The handler's C<result> method, if implemented, is used to
-get a return value.
-
-For most applications this is the only method one needs to care about. If the
-XML document to be written is not fully given as root element, one has to
-directly call the following methods. This method is basically equivalent to:
+Write an XML document, given as array reference (lax MicroXML), hash reference
+(SimpleXML), or both mixed. If given as hash reference, the name of a root tag
+can be chosen or it is set to C<root>. This method is basically equivalent to:
 
     $writer->writeStart;
-    $writer->writeElement($root);
+    $writer->writeElement(
+        $writer->microXML($root, $name // 'root')
+    );
     $writer->writeEnd;
     $writer->result if $writer->can('result');
+
+The remaining methods expect XML in MicroXML format only.
+
+=head2 writeElement( $element [, @more_elements ] )
+
+Write one or more XML elements and their child elements to the handler.
 
 =head2 writeStart( [ $root [, $name ] ] )
 
@@ -261,10 +308,6 @@ element can be passed, so C<< $writer->writeStart($root) >> is equivalent to:
 
     $writer->writeStart;
     $writer->writeStartElement($root);
-
-=head2 writeElement( $element [, @more_elements ] )
-
-Write one or more XML elements, including their child elements, to the handler.
 
 =head2 writeStartElement( $element )
 
@@ -286,56 +329,16 @@ can be passed, so C<< $writer->writeEnd($root) >> is equivalent to:
     $writer->writeEndElement($root);
     $writer->writeEnd;
 
-=head1 CONFIGURATION
+=head2 microXML( $element [, $name ] )
 
-=over
-
-=item attributes
-
-Set to true by default to expect attribute hashes in the L<XML::Struct> input
-format. If set to false, XML elements must be passed as
-
-    [ $name => \@children ]
-
-instead of
-
-    [ $name => \%attributes, \@children ]
-
-Do B<not> set this to false when serializing simple xml in form of hashes!
-
-=item encoding
-
-Sets the encoding for handlers that support an explicit encoding. Set to UTF-8
-by default.
-
-=item version
-
-Sets the XML version (C<1.0> by default).
-
-=item xmldecl
-
-Include XML declaration on serialization. Enabled by default.
-
-=item standalone
-
-Add standalone flag in the XML declaration.
-
-=item to
-
-Filename, L<IO::Handle>, or other kind of stream to serialize XML to.
-
-=item handler
-
-Specify a SAX handler that L</"SAX EVENTS"> are send to. Automatically set to
-an instance of L<XML::Struct::Writer::Stream> if option C<to> has been
-specified or to an instance of L<XML::LibXML::SAX::Builder> otherwise.
-
-=back
+Convert an XML element, given as array reference (lax MicroXML) or as hash
+reference (SimpleXML) to a list of MicroXML elements and optionally removes
+attributes. Does not affect child elements.
 
 =head1 SAX EVENTS
 
-A SAX handler, as used by this module, is expected to implement the following
-methods (two of them are optional):
+A SAX handler, set with option C<handler>, is expected to implement the
+following methods (two of them are optional):
 
 =over
 
