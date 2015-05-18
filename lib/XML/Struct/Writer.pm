@@ -56,7 +56,7 @@ sub write {
 
 *writeDocument = \&write;
 
-# TODO: Make available as function in XML::Struct
+# TODO: Make available as function in XML::Struct or XML::Struct::Simple
 sub microXML {
     my ($self, $element, $name) = @_;
 

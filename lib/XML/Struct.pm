@@ -6,7 +6,7 @@ use XML::Struct::Reader;
 use XML::Struct::Writer;
 use XML::Struct::Simple;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(readXML writeXML simpleXML removeXMLAttr textValues);
 

@@ -3,7 +3,7 @@ use strict;
 use Moo;
 use List::Util qw(first);
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 has root       => (is => 'rw', default => sub { 0 });
 has attributes => (is => 'rw', default => sub { 1 });
@@ -156,5 +156,18 @@ C<remove> will first remove attributes, so the following three are equivalent:
 
 Option C<KeyAttr>, C<ForceArray>, and other fetures of L<XML::Simple> not
 supported (yet).
+
+=head1 METHODS
+
+=head2 transform( $element )
+
+Transform XML given as array reference (MicroXML) to XML as hash reference
+(SimpleXML) as configured.
+
+=head2 FUNCTIONS
+
+=head2 removeXMLAttr( $element )
+
+Recursively remove XML attributes from XML given as array reference (MicroXML).
 
 =cut
