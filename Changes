@@ -1,6 +1,8 @@
 Changelog for XML-Struct
 
 {{$NEXT}}
+
+0.24  2015-05-18 15:34:22 CEST
   - simplified Writer, fix writing mixed XML
   - migrated build system to Milla
   - improved documentation
