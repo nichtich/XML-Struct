@@ -21,7 +21,7 @@ has to         => (
     coerce => sub {
         if (!ref $_[0]) {
             return IO::File->new($_[0], 'w');
-        } elsif (reftype $_[0] eq 'SCALAR') {
+        } elsif (reftype($_[0]) eq 'SCALAR') {
             open my $io,">:utf8",$_[0]; 
             return $io;
         } else { # IO::Handle, GLOB, ...
@@ -60,14 +60,14 @@ sub write {
 sub microXML {
     my ($self, $element, $name) = @_;
 
-    my $type = reftype $element;
+    my $type = reftype($element);
     if ($type) {
         # MicroXML
         if ($type eq 'ARRAY') {
             if (@$element == 1) {
                 return $element;
             } elsif (@$element == 2) { 
-                if ( (reftype $element->[1] // '') eq 'ARRAY') {
+                if ( (reftype($element->[1]) // '') eq 'ARRAY') {
                     return [ $element->[0], {}, $element->[1] ];
                 } elsif (!$self->attributes and %{$element->[1]}) {
                     return [ $element->[0] ];
@@ -89,7 +89,7 @@ sub microXML {
                     # text
                     if (!ref $content) {
                         [ $tag, {}, [$content] ]
-                    } elsif (reftype $content eq 'ARRAY') {
+                    } elsif (reftype($content) eq 'ARRAY') {
                         @$content
                             ? map { [ $tag, {}, [$_] ] } @$content
                             : [ $tag ]; 
@@ -332,7 +332,7 @@ can be passed, so C<< $writer->writeEnd($root) >> is equivalent to:
 =head2 microXML( $element [, $name ] )
 
 Convert an XML element, given as array reference (lax MicroXML) or as hash
-reference (SimpleXML) to a list of MicroXML elements and optionally removes
+reference (SimpleXML) to a list of MicroXML elements and optionally remove
 attributes. Does not affect child elements.
 
 =head1 SAX EVENTS
