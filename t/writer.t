@@ -84,4 +84,9 @@ is_deeply $xml, [
     "end"
 ], 'custom handler';
 
+$writer->xmldecl(0);
+$writer->to(\$str);
+$writer->write( [ "foo", { x => 1 } ] );
+is $str, "<foo x=\"1\"/>\n", 'reset to/handler';
+
 done_testing;

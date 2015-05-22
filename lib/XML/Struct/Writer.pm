@@ -17,7 +17,7 @@ has pretty     => (is => 'rw', default => sub { 0 }); # 0|1|2
 has xmldecl    => (is => 'rw', default => sub { 1 });
 
 has to         => (
-    is => 'ro',
+    is => 'rw',
     coerce => sub {
         if (!ref $_[0]) {
             return IO::File->new($_[0], 'w');
@@ -27,7 +27,8 @@ has to         => (
         } else { # IO::Handle, GLOB, ...
             return $_[0];
         }
-    }
+    },
+    trigger => sub { delete $_[0]->{handler} }
 );
 
 has handler => (

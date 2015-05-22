@@ -1,6 +1,7 @@
 Changelog for XML-Struct
 
 {{$NEXT}}
+  - allow resetting to/handler of writers
 
 0.24  2015-05-18 15:34:22 CEST
   - simplified Writer, fix writing mixed XML
