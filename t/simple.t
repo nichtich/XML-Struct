@@ -41,6 +41,9 @@ foreach ('remove','0') {
         'remove attributes';
 }
 
+is_deeply( XML::Struct::Simple->new->transform( [ root => [ ['text'] ] ] ),
+    { text => {} }, 'empty tag');
+
 is_deeply( XML::Struct::Simple->new->transform( [ root => ['text'] ] ),
     { root => 'text' }, 'special case <root>text</root>');
 
