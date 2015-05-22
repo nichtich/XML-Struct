@@ -1,8 +1,6 @@
 use strict;
 use Test::More;
 
-diag 'SYNOPSIS of XML::Struct';
-
 my $input = join "\n", '<?xml version="1.0" encoding="UTF-8"?>',
     '<root xmlns="http://example.org/">!<x>42</x></root>','';
 

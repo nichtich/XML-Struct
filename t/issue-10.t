@@ -9,7 +9,7 @@ my $xml = <<XML;
   </journal-meta>
 XML
 
-my $simple = readXML( $xml, simple => 1);
+my $simple = readXML($xml, simple => 1);
 is_deeply $simple, { journal => [
              { type => 'nlm-ta',     content => 'BMC Womens Health 1' },
              { type => 'iso-abbrev', content => 'BMC Womens Health 2' }

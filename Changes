@@ -2,6 +2,9 @@ Changelog for XML-Struct
 
 {{$NEXT}}
   - allow resetting to/handler of writers
+  - made most options only settable in constructors
+  - refactored XML::Struct::Simple and improved tests
+  - experimental reader option: deep (issue #16)
 
 0.24  2015-05-18 15:34:22 CEST
   - simplified Writer, fix writing mixed XML

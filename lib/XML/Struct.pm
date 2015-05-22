@@ -6,7 +6,7 @@ use XML::Struct::Reader;
 use XML::Struct::Writer;
 use XML::Struct::Simple;
 
-our $VERSION = '0.24';
+our $VERSION = '0.25';
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(readXML writeXML simpleXML removeXMLAttr textValues);
 
@@ -16,7 +16,7 @@ sub readXML { # ( [$from], %options )
     my %reader_options = (
         map { $_ => delete $options{$_} }
         grep { exists $options{$_} }
-        qw(attributes whitespace path stream simple micro root ns depth content)
+        qw(attributes whitespace path stream simple micro root ns depth content deep)
     );
     if (%options) {
         if (exists $options{from} and keys %options == 1) {

@@ -7,11 +7,11 @@ our @CARP_NOT = qw(XML::Struct);
 use Scalar::Util qw(blessed);
 use XML::Struct;
 
-our $VERSION = '0.23';
+our $VERSION = '0.25';
 
-has whitespace => (is => 'rw', default => sub { 0 });
-has attributes => (is => 'rw', default => sub { 1 });
-has path       => (is => 'rw', default => sub { '*' }, isa => \&_checkPath);
+has whitespace => (is => 'ro', default => sub { 0 });
+has attributes => (is => 'ro', default => sub { 1 });
+has path       => (is => 'ro', default => sub { '*' }, isa => \&_checkPath);
 has stream     => (is => 'rw', 
     lazy    => 1, 
     builder => sub {
@@ -22,12 +22,15 @@ has stream     => (is => 'rw',
         unless blessed $_[0] && $_[0]->isa('XML::LibXML::Reader');
     }
 );
-has from       => (is => 'rw', trigger => 1);
-has ns         => (is => 'rw', default => sub { 'keep' }, trigger => 1);
-has depth      => (is => 'rw');
-has simple     => (is => 'rw', default => sub { 0 });
-has root       => (is => 'rw', default => sub { 0 });
-has content    => (is => 'rw', default => sub { 'content' });
+has from       => (is => 'ro', trigger => 1);
+has ns         => (is => 'ro', default => sub { 'keep' }, trigger => 1);
+has depth      => (is => 'ro', coerce => sub {
+    (defined $_[0] and $_[0] =~ /^\+?\d+/) ? $_[0] : undef
+});
+has deep       => (is => 'ro', default => sub { '' } );
+has simple     => (is => 'ro', default => sub { 0 });
+has root       => (is => 'ro', default => sub { 0 });
+has content    => (is => 'ro', default => sub { 'content' });
 
 use XML::LibXML::Reader qw(
     XML_READER_TYPE_ELEMENT
@@ -37,6 +40,30 @@ use XML::LibXML::Reader qw(
     XML_READER_TYPE_END_ELEMENT
 ); 
 
+sub BUILD {
+    my ($self) = @_;
+    
+    # make sure that option 'deep' and 'depth' are only set if it makes sense
+    
+    if ($self->deep eq 'simple') {
+        if ($self->simple or (defined $self->depth and $self->depth == 0)) {
+            # (deep = simple, simple = 1) or (deep = simple, depth = 0)
+            $self->{simple} = 1;
+            delete $self->{depth};
+            $self->{deep} = '';
+        }
+    } elsif ($self->deep eq 'struct') {
+        $self->{deep} = '';
+    } elsif ($self->deep eq '') {
+        $self->{deep} = $self->simple ? '' : 'simple';
+    } elsif ($self->deep !~ /^(dom|raw)$/) {
+        croak "option deep must be simple, struct, dom, or raw!"; 
+    }
+
+    if (($self->depth || 0) and $self->root and $self->simple) {
+        $self->{depth} = $self->{depth}-1;
+    }
+}
 
 sub _trigger_from {
     my ($self, $from) = @_;
@@ -76,7 +103,7 @@ sub _trigger_from {
                 . join(', ',map { "$_=".$options{$_} } keys %options )."\n";
     }
 
-    $self->stream( $from );
+    $self->stream($from);
 }
 
 
@@ -104,11 +131,10 @@ sub _nameMatch {
     return ($_[0] eq '*' or $_[0] eq $_[1]); 
 }
 
-# TODO: use XML::LibXML::Reader->nextPatternMatch for more performance
-sub readNext { 
-    my $self   = shift;
-    my $stream = blessed $_[0] ? shift() : $self->stream;
-    my $path   = defined $_[0] ? _checkPath($_[0]) : $self->path;
+# read to the next element
+# TODO: use XML::LibXML->nextPatternMatch
+sub _nextPatternMatch {
+    my ($self, $stream, $path) = @_;
 
     $path =~ s{^//}{};
     $path .= '*' if $path =~ qr{^$|/$};
@@ -137,6 +163,16 @@ sub readNext {
         }
     } 
 
+    return 1;
+}
+
+sub readNext { 
+    my $self   = shift;
+    my $stream = blessed $_[0] ? shift() : $self->stream;
+    my $path   = defined $_[0] ? _checkPath($_[0]) : $self->path;
+
+    return unless $self->_nextPatternMatch($stream, $path);
+
     my $xml = $self->readElement($stream);
 
     return $self->simple ? XML::Struct::Simple->new(
@@ -155,10 +191,11 @@ sub readDocument {
     my @document;
    
     while(my $element = $self->read(@_)) {
+        return $element unless wantarray;
         push @document, $element;
     }
 
-    return wantarray ? @document : $document[0];
+    return @document;
 }
 
 sub _name {
@@ -181,6 +218,23 @@ sub readElement {
     my $stream = @_ ? shift : $self->stream;
 
     my @element = ($self->_name($stream));
+
+    # TODO: dom or raw
+    if (defined $self->depth and $stream->depth >= $self->depth) {
+        if ($self->deep eq 'dom') {
+            my $dom = $stream->copyCurrentNode(1);
+            $stream->next;
+            return $dom;
+        } elsif ($self->deep eq 'raw') {
+            my $xml = $stream->readOuterXml();
+            $stream->next;
+            return $xml;
+        }
+        #copyCurrentNode
+        #if (defined $self->depth and $self->depth == $stream->depth ) {
+        #print $stream->depth." ".$self->deep."!".$element[0]."\n";
+        #}
+    }
 
     if ($self->attributes) {
         my $attr = $self->readAttributes($stream);
@@ -368,29 +422,33 @@ Expanding namespace URIs ('C<expand'>) is not supported yet.
 
 =item simple
 
-Convert XML to simple key-value structure as known from L<XML::Simple>.
+Convert XML to simple key-value structure (SimpleXML) with
+L<XML::Struct::Simple>.
 
 =item depth
 
-Only transform to a given depth. All elements below the given depth are
-returned unmodified (not cloned) as ordered XML:
+Only transform to a given depth, starting at C<0> for the root node. Negative
+values, non-numeric values or C<undef> are ignored (unlimited depth as
+default).
 
-    $data = simpleXML($xml, depth => 2)
-    $content = $data->{x}->{y}; # array or scalar (if existing)
+XML elements below the depth are converted to SimpleXML by default or to
+MicroXML if option C<simple> is enabled. This can be configured with option
+C<deep>.
 
 This option is useful for instance to access document-oriented XML embedded in
 data oriented XML. 
 
-Use any negative or non-numeric value for unlimited depth. The root element
-only counts as one level if option C<root> is enabled.  Depth zero (and depth
-one if with root) are only supported experimentally!
+=item deep
+
+How to transform elements below given C<depth>. This option is experimental.
 
 =item root
 
+Include root element when converting to SimpleXML. Disabled by default.
+
 =item content
 
-These options are only relevant when option C<simple> is true. See
-L<XML::Struct::Simple> for documentation.
+Name of text content when converting to SimpleXML.
 
 =back
 
