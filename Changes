@@ -1,6 +1,7 @@
 Changelog for XML-Struct
 
 {{$NEXT}}
+  - deprecate function removeXMLAttr
 
 0.26  2015-06-09 09:53:04 CEST
   - fix builder support of Moo 1.0
