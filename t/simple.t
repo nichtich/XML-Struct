@@ -41,16 +41,30 @@ foreach ('remove','0') {
         'remove attributes';
 }
 
-is_deeply( XML::Struct::Simple->new->transform( [ root => [ ['text'] ] ] ),
+is_deeply(
+    XML::Struct::Simple->new->transform(
+    [ root => [ ['text'] ] ] ),
     { text => {} }, 'empty tag');
+
+# this was a bug until 0.25
+is_deeply(
+    XML::Struct::Simple->new->transform(
+    [ root => [ ['text', {} ] ] ] ),
+    { text => {} }, 'empty tag, no attributes');
+
+is_deeply(
+    XML::Struct::Simple->new( root => 1 )->transform( [ 'root' ] ),
+    { root => {} }, 'empty <root/>');
 
 is_deeply( XML::Struct::Simple->new->transform( [ root => ['text'] ] ),
     { root => 'text' }, 'special case <root>text</root>');
 
-is_deeply( XML::Struct::Simple->new->transform( [ root => { x => 1 }, [] ] ),
+is_deeply( XML::Struct::Simple->new->transform(
+    [ root => { x => 1 }, [] ] ),
     { x => 1 }, 'attributes only');
 
-is_deeply( XML::Struct::Simple->new->transform( [ root => { x => 1 }, ['text'] ] ),
+is_deeply( XML::Struct::Simple->new->transform(
+    [ root => { x => 1 }, ['text'] ] ),
     { x => 1, content => 'text' }, 'mix attributes and text content');
 
 done_testing;

@@ -99,12 +99,21 @@ is_deeply \@nodes, [ { n => 1 }, { n => 2 }, { n => 4 } ], 'read simple as loop'
 
 # read from DOM
 my $dom = XML::LibXML->load_xml( string => "<root><element/></root>" );
-$data = readXML($dom);
-is_deeply $data, [ root => { }, [ [ element => { }, [ ] ] ] ], 
+is_deeply readXML($dom), 
+    [ root => { }, [ [ element => { }, [ ] ] ] ], 
     'read from XML::LibXML::Document';
-$dom = $dom->documentElement();
-$data = readXML($dom);
-is_deeply $data, [ root => { }, [ [ element => { }, [ ] ] ] ], 
+
+is_deeply readXML($dom, simple => 1, root => 1),
+    { root => { element => {} } },
+    'empty tags in simple format'; 
+
+is_deeply readXML($dom->documentElement),
+    [ root => { }, [ [ element => { }, [ ] ] ] ], 
     'read from XML::LibXML::Element';
+
+$dom = XML::LibXML->load_xml( string => "<root/>" );
+is_deeply readXML( $dom, simple => 1, root => 1 ),
+    { root => {} },
+    'empty tag as root';
 
 done_testing;

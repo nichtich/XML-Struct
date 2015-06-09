@@ -65,10 +65,10 @@ sub transform_content {
     # no element children
     unless ( first { ref $_ } @$children ) {
         my $content = join "", @$children;
-        if (!%$attributes) {
-            return $content;
-        } elsif ($content eq '') {
+        if ($content eq '') {
             return { %$attributes };
+        } elsif (!%$attributes) {
+            return $content;
         } else {
             return { %$attributes, $self->content => $content };
         }
