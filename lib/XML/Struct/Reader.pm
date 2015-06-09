@@ -13,10 +13,8 @@ has whitespace => (is => 'ro', default => sub { 0 });
 has attributes => (is => 'ro', default => sub { 1 });
 has path       => (is => 'ro', default => sub { '*' }, isa => \&_checkPath);
 has stream     => (is => 'rw', 
-    lazy    => 1, 
-    builder => sub {
-        XML::LibXML::Reader->new( { IO => \*STDIN } )
-    },
+    lazy    => 1,
+    builder => 1,
     isa     => sub {
         die 'stream must be an XML::LibXML::Reader'
         unless blessed $_[0] && $_[0]->isa('XML::LibXML::Reader');
@@ -65,6 +63,10 @@ sub BUILD {
     }
 }
 
+sub _build_stream {
+    XML::LibXML::Reader->new( { IO => \*STDIN } )
+}
+ 
 sub _trigger_from {
     my ($self, $from) = @_;
 

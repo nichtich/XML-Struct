@@ -15,8 +15,9 @@ has version    => (is => 'rw', default => sub { '1.0' });
 has standalone => (is => 'rw');
 has pretty     => (is => 'rw', default => sub { 0 }); # 0|1|2
 has xmldecl    => (is => 'rw', default => sub { 1 });
+has handler    => (is => 'lazy', builder => 1);
 
-has to         => (
+has to => (
     is => 'rw',
     coerce => sub {
         if (!ref $_[0]) {
@@ -31,17 +32,14 @@ has to         => (
     trigger => sub { delete $_[0]->{handler} }
 );
 
-has handler => (
-    is => 'lazy',
-    builder => sub { 
-        $_[0]->to ? XML::Struct::Writer::Stream->new(
-            fh       => $_[0]->to,
-            encoding => $_[0]->encoding,
-            version  => $_[0]->version,
-            pretty   => $_[0]->pretty,
-        ) : XML::LibXML::SAX::Builder->new( handler => $_[0] ); 
-    },
-);
+sub _build_handler { 
+    $_[0]->to ? XML::Struct::Writer::Stream->new(
+        fh       => $_[0]->to,
+        encoding => $_[0]->encoding,
+        version  => $_[0]->version,
+        pretty   => $_[0]->pretty,
+    ) : XML::LibXML::SAX::Builder->new( handler => $_[0] ); 
+}
 
 sub write {
     my ($self, $element, $name) = @_;
