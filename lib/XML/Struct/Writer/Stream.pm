@@ -2,7 +2,7 @@ package XML::Struct::Writer::Stream;
 use strict;
 use Moo;
 
-our $VERSION = '0.23';
+our $VERSION = '0.26';
 
 has fh     => (is => 'rw', default => sub { *STDOUT });
 has pretty => (is => 'rw');

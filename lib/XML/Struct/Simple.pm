@@ -4,7 +4,7 @@ use Moo;
 use List::Util qw(first);
 use Scalar::Util qw(reftype blessed);
 
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 
 has root => (
     is => 'rw', 
