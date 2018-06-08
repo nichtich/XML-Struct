@@ -64,7 +64,7 @@ sub start_element {
     if ($attr && %$attr) {
         foreach my $key (sort keys %$attr) {
             my $value = $attr->{$key};
-            $value =~ s/([&<>"'])/$ESCAPE{$1}/geo;
+            $value =~ s/([&<>"])/$ESCAPE{$1}/geo;
             $xml .= " $key=\"$value\"";
         }
     }

@@ -1,6 +1,7 @@
 Changelog for XML-Struct
 
 {{$NEXT}}
+  - fix bug that prevented writing single quotes in attribute values
   - deprecate function removeXMLAttr
 
 0.26  2015-06-09 09:53:04 CEST
