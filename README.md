@@ -4,13 +4,13 @@ XML-Struct - Represent XML as data structure preserving element order
 
 # Status
 
-[![Build Status](https://travis-ci.org/nichtich/XML-Struct.png)](https://travis-ci.org/nichtich/XML-Struct)
-[![Coverage Status](https://coveralls.io/repos/nichtich/XML-Struct/badge.png)](https://coveralls.io/r/nichtich/XML-Struct)
+[![Build Status](https://travis-ci.org/nichtich/XML-Struct.svg)](https://travis-ci.org/nichtich/XML-Struct)
+[![Coverage Status](https://coveralls.io/repos/nichtich/XML-Struct/badge.svg)](https://coveralls.io/r/nichtich/XML-Struct)
 [![Kwalitee Score](http://cpants.cpanauthors.org/dist/XML-Struct.png)](http://cpants.cpanauthors.org/dist/XML-Struct)
 
 # SYNOPSIS
 
-    use XML::Struct qw(readXML writeXML simpleXML removeXMLAttr);
+    use XML::Struct qw(readXML writeXML simpleXML);
 
     my $xml = readXML( "input.xml" );
     # [ root => { xmlns => 'http://example.org/' }, [ '!', [ x => {}, [42] ] ] ]
@@ -21,9 +21,6 @@ XML-Struct - Represent XML as data structure preserving element order
 
     my $simple = simpleXML( $xml, root => 'record' );
     # { record => { xmlns => 'http://example.org/', x => 42 } }
-
-    my $xml2 = removeXMLAttr($xml);
-    # [ root => [ '!', [ x => [42] ] ] ]
 
 # DESCRIPTION
 
@@ -40,7 +37,8 @@ This data structure corresponds to the abstract data model of
 If your XML documents don't contain relevant attributes, you can also choose
 to map to this format:
 
-    [ $name => \@children ]
+    [ $name => \@children ]   # element without attributes
+    [ $name ]                 # empty tag without attributes
 
 Both parsing (with [XML::Struct::Reader](https://metacpan.org/pod/XML::Struct::Reader) or function `readXML`) and
 serializing (with [XML::Struct::Writer](https://metacpan.org/pod/XML::Struct::Writer) or function `writeXML`) are fully
@@ -73,22 +71,26 @@ The following functions are exported on request:
 ## readXML( $source \[, %options \] )
 
 Read an XML document with [XML::Struct::Reader](https://metacpan.org/pod/XML::Struct::Reader). The type of source (string,
-filename, URL, IO Handle...) is detected automatically. Options not known to
-XML::Struct::Reader are passed to [XML::LibXML::Reader](https://metacpan.org/pod/XML::LibXML::Reader).
+filename, URL, IO Handle...) is detected automatically. See
+[XML::Struct::Reader](https://metacpan.org/pod/XML::Struct::Reader) for options. Options not known to XML::Struct::Reader
+are passed to [XML::LibXML::Reader](https://metacpan.org/pod/XML::LibXML::Reader).
 
 ## writeXML( $xml \[, %options \] )
 
-Write an XML document/element with [XML::Struct::Writer](https://metacpan.org/pod/XML::Struct::Writer).
+Write an XML document/element with [XML::Struct::Writer](https://metacpan.org/pod/XML::Struct::Writer). See
+[XML::Struct::Writer](https://metacpan.org/pod/XML::Struct::Writer) for options.
 
 ## simpleXML( $element \[, %options \] )
 
 Transform an XML document/element into simple key-value format as known from
-[XML::Simple](https://metacpan.org/pod/XML::Simple). See [XML::Struct::Simple](https://metacpan.org/pod/XML::Struct::Simple) for configuration options.
+[XML::Simple](https://metacpan.org/pod/XML::Simple). See [XML::Struct::Simple](https://metacpan.org/pod/XML::Struct::Simple) for options.
 
 ## removeXMLAttr( $element )
 
 Transform XML structure with attributes to XML structure without attributes.
 The function does not modify the passed element but creates a modified copy.
+
+_this function is deprecated and will be removed in a future release!_
 
 # EXAMPLE
 

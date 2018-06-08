@@ -5,7 +5,7 @@ use List::Util qw(first);
 use Scalar::Util qw(reftype blessed);
 use Carp qw(carp);
 
-our $VERSION = '0.26';
+our $VERSION = '0.27';
 
 has root => (
     is => 'rw',
