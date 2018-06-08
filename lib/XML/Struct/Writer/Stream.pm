@@ -44,17 +44,18 @@ sub start_element {
     my $tag = $data->{Name};
     my $attr = $data->{Attributes};
     my $xml = "<$tag";
+    my $status = $self->{_status} // DOCUMENT_STARTED;
 
-    if ($self->{_status} == TAG_STARTED) {
+    if ($status == TAG_STARTED) {
         print {$self->fh} '>';
         if ($self->pretty) {
             print {$self->fh} "\n".('  ' x (scalar @{$self->{_stack}}));
         }
-    } elsif ($self->{_status} == CHILD_ELEMENT) {
+    } elsif ($status == CHILD_ELEMENT) {
         if ($self->pretty) {
             print {$self->fh} "\n".('  ' x (scalar @{$self->{_stack}}));
         }
-    } elsif ($self->{_status} == CHAR_CONTENT) {
+    } elsif ($status == CHAR_CONTENT) {
         print {$self->fh} $self->{_chars};
     } # else: DOCUMENT_STARTED
 
