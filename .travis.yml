@@ -11,6 +11,9 @@ perl:
     - "5.16"
     - "5.14"
     - "5.12"
+jobs: 
+  exclude:
+    perl: "5.12"
 install:
     - cpanm --quiet --notest --skip-satisfied Dist::Milla
     - cpanm --with-all-features --installdeps .
